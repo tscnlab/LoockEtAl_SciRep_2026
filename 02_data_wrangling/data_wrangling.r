@@ -220,7 +220,7 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
  
  #renaming according to mctq pacakge and papers
  mctq_ad.data <-  mctq_ad.data %>% rename(
-   id = record_id,
+   #id = record_id,
    work = slypos_mctq_01, # need to convert into logical 1=True, 2=No
    #work day variables
    wd = slypos_mctq_02, 
@@ -248,7 +248,7 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
  
  
  mctq_ped.data <-  mctq_ped.data %>% rename(
-   id = record_id,
+   #id = record_id,
    work = slypos_mctq_01_ped, # need to convert into logical 1=True, 2=No
    #work day variables
    wd = slypos_mctq_02_ped, 
@@ -275,7 +275,7 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
  
  # Convert into Logical vars
  mctq_ad.data$work <- mctq_ad.data$work==1
- mctq_ped.data$work <- mctq_ad.data$work==1
+ mctq_ped.data$work <- mctq_ped.data$work==1
  mctq_ad.data$alarm_w <- mctq_ad.data$alarm_w==1
  mctq_ped.data$alarm_w <- mctq_ped.data$alarm_w==1
  mctq_ad.data$wake_before_w <-  mctq_ad.data$wake_before_w==1
@@ -413,9 +413,20 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
                                                         mctq_ped.data$alarm_f))
  
  
+# select all needed mctq vars here: you can add others later
  
- 
- 
+mctq_ad.score <- mctq_ad.data %>% select (c(record_id, work, wd, alarm_f, le_w:msf_sc))
+mctq_ped.score <- mctq_ped.data %>% select (c(record_id, work, wd, alarm_f, le_w:msf_sc))
+  
+# Combine dataframes and fill NAs from mctq_ped.score where mctq_ad.score has NAs
+mctq_all.score <- mctq_ad.score %>%
+  full_join(mctq_ped.score, by = "record_id", suffix = c(".mctq_ad.score", ".mctq_ped.score")) %>%
+  mutate(across(ends_with(".mctq_ad.score"), ~ coalesce(.x, get(sub(".mctq_ad.score", ".mctq_ped.score", cur_column())))))
+
+# Remove the now redundant .mctq_ped.score columns
+mctq_all.score <- mctq_all.score %>%
+  select(-ends_with(".mctq_ped.score"))%>%
+  rename_with(~ sub("\\.mctq_ad\\.score$", "", .x), ends_with(".mctq_ad.score")) #return the original names
 
  
  
@@ -608,7 +619,10 @@ data <- data %>% mutate(
   
   ## Subdataset Sum scores of questionnaires------------------------------------
   
- 
+  data <- merge(data, mctq_all.score, by="record_id")
+  
+  
+  mctqvars <- names(mctq_all.score)
   
   scorevars <- c("Photophila_score", "Photophobia_score", "ASE_score",
                  "ASE_levels", "Promis_sd_ad_sum", "Promis_sri_ad_sum",
@@ -620,8 +634,8 @@ data <- data %>% mutate(
   
   # select only the data needed for analysis
   
-  analysis.data <- data %>% dplyr::select(c(demvars,slypos_demographics_tz.factor, 
-                                            fill_date, scorevars))
+  analysis.data <- data %>% dplyr::select(c(record_id, demvars, slypos_demographics_tz.factor, 
+                                            fill_date, scorevars, mctqvars))
   
   
   save(analysis.data, file="./04_data_analysis/analysis.data.rda")
