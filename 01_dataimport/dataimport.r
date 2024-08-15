@@ -10,7 +10,8 @@ graphics.off()
 if(!require(pacman)) install.packages("pacman")
 
 #----- use pacman function p_load to check all packages that you are using in this script
-pacman::p_load(stringr, reshape2, Hmisc, tidyverse, doBy, DescTools, BayesFactor, effectsize, gtsummary)
+pacman::p_load(stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
+               BayesFactor, effectsize, gtsummary, mctq)
 
 
 # Read-in data ----------------------------------------------------------------
@@ -196,79 +197,79 @@ label(data$slypos_promis_si_ad_04)="I was sleepy during the daytime."
 label(data$your_wakeup_and_sleep_times_timestamp)="Survey Timestamp"
 
 # MCTQ labelling
-label(data$slypos_mctq_01)="I have a regular work schedule (this includes being, for example, a housewife or househusband)"
-label(data$slypos_mctq_02)="If Yes: I work on"
-label(data$slypos_mctq_03)="I go to bed at "
-label(data$slypos_mctq_04)="I actually get ready to fall asleep at"
-label(data$slypos_mctq_05)="I need ___ minutes to fall asleep."
-label(data$slypos_mctq_06)="I wake up at "
-label(data$slypos_mctq_07)="After ___ minutes I get up."
-label(data$slypos_mctq_08)="I use an alarm clock on workdays: "
-label(data$slypos_mctq_09)="If Yes: I regularly wake up before the alarm rings:"
-label(data$slypos_mctq_32)="On workdays I usually have my first meal at"
-label(data$slypos_mctq_33)="On workdays I usually have my last meal at"
-label(data$slypos_mctq_27)="I regularly drink caffeinated drinks."
-label(data$slypos_mctq_28)="On workdays I usually drink my first caffeinated drink at"
-label(data$slypos_mctq_29)="On workdays I usually drink my last caffeinated drink at"
-label(data$slypos_mctq_10)="I go to bed at "
-label(data$slypos_mctq_11)="I actually get ready to fall asleep at"
-label(data$slypos_mctq_12)="I need ___ minutes to fall asleep."
-label(data$slypos_mctq_13)="I wake up at "
-label(data$slypos_mctq_14)="After ___ minutes I get up."
-label(data$slypos_mctq_15)="My wake-up time is due to the use of an alarm clock: "
-label(data$slypos_mctq_16)="There are particular reasons why I cannot freely choose my sleep times on free days: "
-label(data$slypos_mctq_17)="If Yes: "
-label(data$slypos_mctq_34)="On free days I usually have my first meal at"
-label(data$slypos_mctq_35)="On free days I usually have my last meal at"
-label(data$slypos_mctq_30)="On free days I usually drink my first caffeinated drink at"
-label(data$slypos_mctq_31)="On free days I usually drink my last caffeinated drink at"
-label(data$slypos_mctq_18)="In the last 3 months, I worked as a shift worker:  "
-label(data$slypos_mctq_19)="My usual work schedule starts at "
-label(data$slypos_mctq_20)="My usual work schedule ends at "
-label(data$slypos_mctq_21)="My work schedules are..."
-label(data$slypos_mctq_22)="I travel to work... "
-label(data$slypos_mctq_23)="For the commute to work, I need ___ hours and ___ minutes."
-label(data$slypos_mctq_24)="For the commute from work, I need ___ hours and ___ minutes."
-label(data$slypos_mctq_25)="on workdays: ___ hours and ___ minutes"
-label(data$slypos_mctq_26)="on free days: ___ hours and ___ minutes"
-label(data$slypos_mctq_attentioncheck_2)="We want to make sure you are paying attention. Please type in nineteen as a number."
-label(data$slypos_mctq_01_ped)="I go to school on a regular basis"
-label(data$slypos_mctq_02_ped)="If Yes: I go to school on"
-label(data$slypos_mctq_03_ped)="I got to bed at "
-label(data$slypos_mctq_03_ped_2)="What is the main reason you usually go to bed at this time on school days?"
-label(data$slypos_mctq_04_ped)="I actually get ready to fall asleep at"
-label(data$slypos_mctq_05_ped)="I need ___ minutes to fall asleep."
-label(data$slypos_mctq_06_ped)="I wake up at "
-label(data$slypos_mctq_07_ped)="After ___ minutes I get up."
-label(data$slypos_mctq_08_ped)="I use an alarm clock on school days or my parents wake me up:"
-label(data$slypos_mctq_09_ped)="If Yes: I regularly wake up before the alarm rings:"
-label(data$slypos_mctq_32_ped)="On school days I usually have my first meal at"
-label(data$slypos_mctq_33_ped)="On school days I usually have my last meal at"
-label(data$slypos_mctq_27_ped)="I regularly drink caffeinated drinks."
-label(data$slypos_mctq_28_ped)="On school days I usually drink my first caffeinated drink at"
-label(data$slypos_mctq_29_ped)="On school days I usually drink my last caffeinated drink at"
-label(data$slypos_mctq_10_ped)="I go to bed at "
-label(data$slypos_mctq_11_ped)="I actually get ready to fall asleep at"
-label(data$slypos_mctq_12_ped)="I need ___ minutes to fall asleep."
-label(data$slypos_mctq_13_ped)="I wake up at "
-label(data$slypos_mctq_14_ped)="After ___ minutes I get up."
-label(data$slypos_mctq_15_ped)="My wake-up time is due to the use of an alarm clock or my parents waking me up: "
-label(data$slypos_mctq_16_ped)="There are particular reasons why I cannot freely choose my sleep times on free days: "
-label(data$slypos_mctq_17_ped)="If Yes: "
-label(data$slypos_mctq_34_ped)="On free days I usually have my first meal at"
-label(data$slypos_mctq_35_ped)="On free days I usually have my last meal at"
-label(data$slypos_mctq_30_ped)="On free days I usually drink my first caffeinated drink at"
-label(data$slypos_mctq_31_ped)="On free days I usually drink my last caffeinated drink at"
-label(data$slypos_mctq_19_ped)="My usual school schedule starts at "
-label(data$slypos_mctq_20_ped)="My usual school schedule ends at "
-label(data$slypos_mctq_21_ped)="My school schedules are..."
-label(data$slypos_mctq_22_ped)="I travel to work... "
-label(data$slypos_mctq_23_ped)="For the commute to school, I need ___ hours and ___ minutes."
-label(data$slypos_mctq_24_ped)="For the commute from school, I need ___ hours and ___ minutes."
-label(data$slypos_mctq_25_ped)="on school days: ___ hours and ___ minutes"
-label(data$slypos_mctq_26_ped)="on free days: ___ hours and ___ minutes"
-label(data$slypos_mctq_attentioncheck)="We want to make sure you are paying attention. Please type in nineteen as a number."
-label(data$your_light_behaviour_timestamp)="Survey Timestamp"
+# label(data$slypos_mctq_01)="I have a regular work schedule (this includes being, for example, a housewife or househusband)"
+# label(data$slypos_mctq_02)="If Yes: I work on"
+# label(data$slypos_mctq_03)="I go to bed at "
+# label(data$slypos_mctq_04)="I actually get ready to fall asleep at"
+# label(data$slypos_mctq_05)="I need ___ minutes to fall asleep."
+# label(data$slypos_mctq_06)="I wake up at "
+# label(data$slypos_mctq_07)="After ___ minutes I get up."
+# label(data$slypos_mctq_08)="I use an alarm clock on workdays: "
+# label(data$slypos_mctq_09)="If Yes: I regularly wake up before the alarm rings:"
+# label(data$slypos_mctq_32)="On workdays I usually have my first meal at"
+# label(data$slypos_mctq_33)="On workdays I usually have my last meal at"
+# label(data$slypos_mctq_27)="I regularly drink caffeinated drinks."
+# label(data$slypos_mctq_28)="On workdays I usually drink my first caffeinated drink at"
+# label(data$slypos_mctq_29)="On workdays I usually drink my last caffeinated drink at"
+# label(data$slypos_mctq_10)="I go to bed at "
+# label(data$slypos_mctq_11)="I actually get ready to fall asleep at"
+# label(data$slypos_mctq_12)="I need ___ minutes to fall asleep."
+# label(data$slypos_mctq_13)="I wake up at "
+# label(data$slypos_mctq_14)="After ___ minutes I get up."
+# label(data$slypos_mctq_15)="My wake-up time is due to the use of an alarm clock: "
+# label(data$slypos_mctq_16)="There are particular reasons why I cannot freely choose my sleep times on free days: "
+# label(data$slypos_mctq_17)="If Yes: "
+# label(data$slypos_mctq_34)="On free days I usually have my first meal at"
+# label(data$slypos_mctq_35)="On free days I usually have my last meal at"
+# label(data$slypos_mctq_30)="On free days I usually drink my first caffeinated drink at"
+# label(data$slypos_mctq_31)="On free days I usually drink my last caffeinated drink at"
+# label(data$slypos_mctq_18)="In the last 3 months, I worked as a shift worker:  "
+# label(data$slypos_mctq_19)="My usual work schedule starts at "
+# label(data$slypos_mctq_20)="My usual work schedule ends at "
+# label(data$slypos_mctq_21)="My work schedules are..."
+# label(data$slypos_mctq_22)="I travel to work... "
+# label(data$slypos_mctq_23)="For the commute to work, I need ___ hours and ___ minutes."
+# label(data$slypos_mctq_24)="For the commute from work, I need ___ hours and ___ minutes."
+# label(data$slypos_mctq_25)="on workdays: ___ hours and ___ minutes"
+# label(data$slypos_mctq_26)="on free days: ___ hours and ___ minutes"
+# label(data$slypos_mctq_attentioncheck_2)="We want to make sure you are paying attention. Please type in nineteen as a number."
+# label(data$slypos_mctq_01_ped)="I go to school on a regular basis"
+# label(data$slypos_mctq_02_ped)="If Yes: I go to school on"
+# label(data$slypos_mctq_03_ped)="I got to bed at "
+# label(data$slypos_mctq_03_ped_2)="What is the main reason you usually go to bed at this time on school days?"
+# label(data$slypos_mctq_04_ped)="I actually get ready to fall asleep at"
+# label(data$slypos_mctq_05_ped)="I need ___ minutes to fall asleep."
+# label(data$slypos_mctq_06_ped)="I wake up at "
+# label(data$slypos_mctq_07_ped)="After ___ minutes I get up."
+# label(data$slypos_mctq_08_ped)="I use an alarm clock on school days or my parents wake me up:"
+# label(data$slypos_mctq_09_ped)="If Yes: I regularly wake up before the alarm rings:"
+# label(data$slypos_mctq_32_ped)="On school days I usually have my first meal at"
+# label(data$slypos_mctq_33_ped)="On school days I usually have my last meal at"
+# label(data$slypos_mctq_27_ped)="I regularly drink caffeinated drinks."
+# label(data$slypos_mctq_28_ped)="On school days I usually drink my first caffeinated drink at"
+# label(data$slypos_mctq_29_ped)="On school days I usually drink my last caffeinated drink at"
+# label(data$slypos_mctq_10_ped)="I go to bed at "
+# label(data$slypos_mctq_11_ped)="I actually get ready to fall asleep at"
+# label(data$slypos_mctq_12_ped)="I need ___ minutes to fall asleep."
+# label(data$slypos_mctq_13_ped)="I wake up at "
+# label(data$slypos_mctq_14_ped)="After ___ minutes I get up."
+# label(data$slypos_mctq_15_ped)="My wake-up time is due to the use of an alarm clock or my parents waking me up: "
+# label(data$slypos_mctq_16_ped)="There are particular reasons why I cannot freely choose my sleep times on free days: "
+# label(data$slypos_mctq_17_ped)="If Yes: "
+# label(data$slypos_mctq_34_ped)="On free days I usually have my first meal at"
+# label(data$slypos_mctq_35_ped)="On free days I usually have my last meal at"
+# label(data$slypos_mctq_30_ped)="On free days I usually drink my first caffeinated drink at"
+# label(data$slypos_mctq_31_ped)="On free days I usually drink my last caffeinated drink at"
+# label(data$slypos_mctq_19_ped)="My usual school schedule starts at "
+# label(data$slypos_mctq_20_ped)="My usual school schedule ends at "
+# label(data$slypos_mctq_21_ped)="My school schedules are..."
+# label(data$slypos_mctq_22_ped)="I travel to work... "
+# label(data$slypos_mctq_23_ped)="For the commute to school, I need ___ hours and ___ minutes."
+# label(data$slypos_mctq_24_ped)="For the commute from school, I need ___ hours and ___ minutes."
+# label(data$slypos_mctq_25_ped)="on school days: ___ hours and ___ minutes"
+# label(data$slypos_mctq_26_ped)="on free days: ___ hours and ___ minutes"
+# label(data$slypos_mctq_attentioncheck)="We want to make sure you are paying attention. Please type in nineteen as a number."
+# label(data$your_light_behaviour_timestamp)="Survey Timestamp"
 
 # Leba Labels
 label(data$slypos_leba_01)="I turn on the lights immediately after waking up."
@@ -623,39 +624,6 @@ data<- data %>% select(-starts_with("slypos_consent"),
                        -ends_with("_complete"))# add more unnecesary vars to eliminiate
 
 
-
-
-
-#Creating datasubsets ----------------------------------------------------------
-
-## create and save demographics datasets----------------------------------------
-
-demvars <- c("slypos_demographics_age",
-                  "slypos_demographics_sex.factor",
-                  "slypos_demographics_gender.factor" ,
-                  "slypos_demographics_language.factor", 
-                  "slypos_demographics_work_or_school.factor",
-                  "slypos_demographics_school.factor")
-
-
-#separating naming and  reducing data for descriptive Table 
-demvars.data <- data %>% dplyr::select(c(demvars))
-
-
-# recode the Gender factor so it will only show "Gender Diverse" in the summary table
-demvars.data$slypos_demographics_gender.factor <-
-  recode_factor(demvars.data$slypos_demographics_gender.factor, "No"="Yes",
-                "Yes"= "No")
-
-
-#save demoraphic variables
-save(demvars.data,file="./03_demographics/demvars.data.rda")
-
-
-#save timezone variables
-country_tz.data <- data %>% dplyr::select(c(slypos_demographics_tz, slypos_demographics_tz.factor))
-
-save(country_tz.data,file="./03_demographics/country_tz.data.rda")
 
 ## create and save dataset for analysis ---------------------------------------
 
