@@ -9,7 +9,8 @@ graphics.off()
 if(!require(pacman)) install.packages("pacman")
 
 #----- use pacman function p_load to check all packages that you are using in this script
-pacman::p_load(stringr, reshape2, Hmisc, tidyverse, doBy, DescTools, BayesFactor, effectsize, gtsummary)
+pacman::p_load(stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
+               BayesFactor, effectsize, gtsummary, mctq)
 
 set.seed(123)
 
@@ -53,37 +54,6 @@ dem_table
 
 
 # Country/time zone data----------------------------------------------
-
-## Data wrangling country & timezone ------------------------------------
-
-#Check for errors with missing Timezone data
-sum(is.na(country_tz.data$slypos_demographics_tz.factor))
-# fix errors
-
-TZ <- as.data.frame(str_split_fixed(country_tz.data$slypos_demographics_tz.factor, "-", 2))
-TZ[TZ$V1=="Tanzania", 2] <- " East Africa/Dodoma (UTC +03:00)"
-TZ[TZ$V1=="Macedonia", 2] <- " European /Skopje (UTC +01:00)"
-TZ[TZ$V1=="Taiwan", 2] <- " Asia /Taipei City (UTC +08:00)"
-TZ[TZ$V1=="Iran", 2] <- " Iran /Tehran (UTC +0:30)"
-
-
-# calculate number of different countries in the dataset
-num.countries <- as.data.frame(unique(TZ$V1))
-nrow(num.countries)
-
-# calculate number of different countries in the dataset
-UTC <- as.data.frame(str_split_fixed(TZ$V2, "UTC", 2))
-num.UTC <- as.data.frame(unique(UTC$V2))
-nrow(num.UTC)
-
-
-# create time-zone.csv file
-timezone <- TZ %>% 
-  group_by(V2) %>% 
-  count() %>% 
-  as.data.frame()
-
-write.csv(timezone, "./03_demographics/timezone.csv")
 
 ## summarise country/time zone data----------------------------------------------
 
