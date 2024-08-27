@@ -99,33 +99,64 @@ data <-data %>%
 ## PROMIS MEASURES - Sum scores ------------------------------------------------
 #PROMIS Sleep Disturbance sum score pediatric
 
-data<-data %>%
-  mutate(Promis_sd_ped_sum=slypos_promis_sd_ped_01 + 
-           slypos_promis_sd_ped_02 + 
-           slypos_promis_sd_ped_03 + 
-           slypos_promis_sd_ped_04)
+# data<-data %>%
+#   mutate(Promis_sd_ped_sum=slypos_promis_sd_ped_01 + 
+#            slypos_promis_sd_ped_02 + 
+#            slypos_promis_sd_ped_03 + 
+#            slypos_promis_sd_ped_04)
+# 
+# #PROMIS Sleep Disturbance sum score adult
+# 
+# data<-data %>%
+#   mutate(Promis_sd_ad_sum=slypos_promis_sd_ad_01 + 
+#            slypos_promis_sd_ad_02 + 
+#            slypos_promis_sd_ad_03 + 
+#            slypos_promis_sd_ad_04)
 
-#PROMIS Sleep Disturbance sum score adult
 
-data<-data %>%
-  mutate(Promis_sd_ad_sum=slypos_promis_sd_ad_01 + 
-           slypos_promis_sd_ad_02 + 
-           slypos_promis_sd_ad_03 + 
-           slypos_promis_sd_ad_04)
+#PROMIS Sleep Disturbance sum score for both adults and ped
 
-#PROMIS Sleep Related Impairment sum score pediatric
-data<-data %>%
-  mutate(Promis_sri_ped_sum=slypos_promis_si_ped_01 + 
-           slypos_promis_si_ped_02 + 
-           slypos_promis_si_ped_03 + 
-           slypos_promis_si_ped_04)
+data <- data %>%
+  mutate(Promis_sd_sum = rowSums(select(., 
+                                        slypos_promis_sd_ped_01, 
+                                        slypos_promis_sd_ped_02, 
+                                        slypos_promis_sd_ped_03, 
+                                        slypos_promis_sd_ped_04,
+                                        slypos_promis_sd_ad_01, 
+                                        slypos_promis_sd_ad_02, 
+                                        slypos_promis_sd_ad_03, 
+                                        slypos_promis_sd_ad_04), 
+                                 na.rm = TRUE))
 
-#PROMIS Sleep Related Impairment sum score adult
-data<-data %>%
-  mutate(Promis_sri_ad_sum=slypos_promis_si_ad_01 + 
-           slypos_promis_si_ad_02 + 
-           slypos_promis_si_ad_03 + 
-           slypos_promis_si_ad_04)
+
+
+# #PROMIS Sleep Related Impairment sum score pediatric
+# data<-data %>%
+#   mutate(Promis_sri_ped_sum=slypos_promis_si_ped_01 +
+#            slypos_promis_si_ped_02 +
+#            slypos_promis_si_ped_03 +
+#            slypos_promis_si_ped_04)
+# 
+# #PROMIS Sleep Related Impairment sum score adult
+# data<-data %>%
+#   mutate(Promis_sri_ad_sum=slypos_promis_si_ad_01 +
+#            slypos_promis_si_ad_02 +
+#            slypos_promis_si_ad_03 +
+#            slypos_promis_si_ad_04)
+
+#PROMIS Sleep Related Impairment sum score for both adults and ped
+
+data <- data %>%
+  mutate(Promis_sri_sum = rowSums(select(., 
+                                         slypos_promis_si_ped_01, 
+                                         slypos_promis_si_ped_02, 
+                                         slypos_promis_si_ped_03, 
+                                         slypos_promis_si_ped_04,
+                                         slypos_promis_si_ad_01, 
+                                         slypos_promis_si_ad_02, 
+                                         slypos_promis_si_ad_03, 
+                                         slypos_promis_si_ad_04), 
+                                  na.rm = TRUE))
 
 
 ## Self-Administered Rating Scale for Pubertal Development --------------------
@@ -176,6 +207,8 @@ data <- data %>% mutate(
 
 #use mctq r package for mctq variables? 
 # what to do with the caffeine and food timing items?
+
+
 
 #### create subdata set for mctq --------------------------------------------
 # Collect the names of all variables that include "mctq" in the name
@@ -336,11 +369,138 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
  mctq_ped.data$le_f <- sapply(mctq_ped.data$le_f, convert_to_decimal_hours)
  mctq_ped.data$le_f <- lubridate::dhours(mctq_ped.data$le_f)
  
+ ####  change wrong formatting ----------------------------------------------
+  #translate wrong format (e.g. 11 to 23:00)
  
- # CAVE
+  # Convert hours to seconds
+ hours_to_add <- hms::hms(12*3600)
+ 
+ #pediatric Mctq
+ 
+ # Adjusting `sprep_w` based on the condition
+ mctq_ped.data$sprep_w <- ifelse(mctq_ped.data$sprep_w >= hms::parse_hm("08:00:00") & 
+                                   mctq_ped.data$sprep_w < hms::parse_hm("12:00:00"),
+                                 mctq_ped.data$sprep_w + hours_to_add,
+                                 mctq_ped.data$sprep_w)
+ 
+ # Adjusting `sprep_w` based on the condition
+ mctq_ped.data$sprep_w <- ifelse(mctq_ped.data$sprep_w >= hms::parse_hm("12:00:00") & 
+                                   mctq_ped.data$sprep_w < hms::parse_hm("18:00:00"),
+                                 mctq_ped.data$sprep_w - hours_to_add,
+                                 mctq_ped.data$sprep_w)
+ 
+ mctq_ped.data$sprep_w <- hms::as_hms(mctq_ped.data$sprep_w)
+ 
+ 
+ # Adjusting `bt_w` based on the condition
+
+ # Adjusting `sprep_w` based on the condition
+ mctq_ped.data$bt_w <- ifelse(mctq_ped.data$bt_w >= hms::parse_hm("08:00:00") & 
+                                   mctq_ped.data$bt_w < hms::parse_hm("12:00:00"),
+                                 mctq_ped.data$bt_w + hours_to_add,
+                                 mctq_ped.data$bt_w)
+ 
+ # Adjusting `bt_w` based on the condition
+ mctq_ped.data$bt_w <- ifelse(mctq_ped.data$bt_w >= hms::parse_hm("12:00:00") & 
+                                   mctq_ped.data$bt_w < hms::parse_hm("18:00:00"),
+                                 mctq_ped.data$bt_w - hours_to_add,
+                                 mctq_ped.data$bt_w)
+ 
+ mctq_ped.data$bt_w <- hms::as_hms(mctq_ped.data$bt_w)
+ 
+ 
+ #adult Mctq
+ 
+ # Adjusting `sprep_w` based on the condition
+ mctq_ad.data$sprep_w <- ifelse(mctq_ad.data$sprep_w >= hms::parse_hm("08:00:00") & 
+                                   mctq_ad.data$sprep_w < hms::parse_hm("12:00:00"),
+                                 mctq_ad.data$sprep_w + hours_to_add,
+                                 mctq_ad.data$sprep_w)
+ 
+ # Adjusting `sprep_w` based on the condition
+ mctq_ad.data$sprep_w <- ifelse(mctq_ad.data$sprep_w >= hms::parse_hm("12:00:00") & 
+                                   mctq_ad.data$sprep_w < hms::parse_hm("18:00:00"),
+                                 mctq_ad.data$sprep_w - hours_to_add,
+                                 mctq_ad.data$sprep_w)
+ 
+ mctq_ad.data$sprep_w <- hms::as_hms(mctq_ad.data$sprep_w)
+ 
+ 
+ # Adjusting `bt_w` based on the condition
+ 
+ # Adjusting `sprep_w` based on the condition
+ mctq_ad.data$bt_w <- ifelse(mctq_ad.data$bt_w >= hms::parse_hm("08:00:00") & 
+                                mctq_ad.data$bt_w < hms::parse_hm("12:00:00"),
+                              mctq_ad.data$bt_w + hours_to_add,
+                              mctq_ad.data$bt_w)
+ 
+ # Adjusting `bt_w` based on the condition
+ mctq_ad.data$bt_w <- ifelse(mctq_ad.data$bt_w >= hms::parse_hm("12:00:00") & 
+                                mctq_ad.data$bt_w < hms::parse_hm("18:00:00"),
+                              mctq_ad.data$bt_w - hours_to_add,
+                              mctq_ad.data$bt_w)
+ 
+ mctq_ad.data$bt_w <- hms::as_hms(mctq_ad.data$bt_w)
+ 
+ 
+ 
+ ####  exclude invalid data --> set certain vars to NA---------------------------------
+ 
  #many people misunderstood sprep "getting ready to fall asleep".
+ # if getting ready to fall asleep < bedtime --> MA
+ # if using an alarm on free days --> already no MSFsc computed
+ 
+ # when to exclude light exposure time?
+ # outlier plotting or smth like this?
+ 
+ #work days
+
+ # Applying the condition and setting the specified columns to NA
+ mctq_ped.data$sprep_w[!(mctq_ped.data$sprep_w > mctq_ped.data$bt_w |  
+                           mctq_ped.data$sprep_w == mctq_ped.data$bt_w |
+                           (mctq_ped.data$sprep_w - mctq_ped.data$bt_w)/3600 < -18)] <- NA
+ 
+ # mctq_ped.data$bt_w[!(mctq_ped.data$sprep_w > mctq_ped.data$bt_w |  
+ #                        mctq_ped.data$sprep_w == mctq_ped.data$bt_w |
+ #                        (mctq_ped.data$sprep_w - mctq_ped.data$bt_w)/3600 < -18)] <- NA
  
  
+ #do the same for adult questionnaire
+ 
+ # Applying the condition and setting the specified columns to NA
+ mctq_ad.data$sprep_w[!(mctq_ad.data$sprep_w > mctq_ad.data$bt_w |  
+                           mctq_ad.data$sprep_w == mctq_ad.data$bt_w |
+                           (mctq_ad.data$sprep_w - mctq_ad.data$bt_w)/3600 < -18)] <- NA
+ 
+ # mctq_ad.data$bt_w[!(mctq_ad.data$sprep_w > mctq_ad.data$bt_w |  
+ #                        mctq_ad.data$sprep_w == mctq_ad.data$bt_w |
+ #                        (mctq_ad.data$sprep_w - mctq_ad.data$bt_w)/3600 < -18)] <- NA
+ # 
+ # 
+ 
+ 
+ #free days
+ # Applying the condition and setting the specified columns to NA
+ mctq_ped.data$sprep_f[!(mctq_ped.data$sprep_f > mctq_ped.data$bt_f |  
+                           mctq_ped.data$sprep_f == mctq_ped.data$bt_f |
+                           (mctq_ped.data$sprep_f - mctq_ped.data$bt_f)/3600 < -18)] <- NA
+ 
+ # mctq_ped.data$bt_f[!(mctq_ped.data$sprep_f > mctq_ped.data$bt_f |  
+ #                        mctq_ped.data$sprep_f == mctq_ped.data$bt_f |
+ #                        (mctq_ped.data$sprep_f - mctq_ped.data$bt_f)/3600 < -18)] <- NA
+ 
+ 
+ #do the same for adult questionnaire
+ 
+ # Applying the condition and setting the specified columns to NA
+ mctq_ad.data$sprep_f[!(mctq_ad.data$sprep_f > mctq_ad.data$bt_f |  
+                          mctq_ad.data$sprep_f == mctq_ad.data$bt_f |
+                          (mctq_ad.data$sprep_f - mctq_ad.data$bt_f)/3600 < -18)] <- NA
+ 
+ # mctq_ad.data$bt_f[!(mctq_ad.data$sprep_f > mctq_ad.data$bt_f |  
+ #                       mctq_ad.data$sprep_f == mctq_ad.data$bt_f |
+ #                       (mctq_ad.data$sprep_f - mctq_ad.data$bt_f)/3600 < -20)] <- NA
+ # 
  
  
  ##### Adult version computations -------------------------------------------------------------
@@ -561,7 +721,7 @@ data <- data %>% mutate(
   
   
   #separating naming and  reducing data for descriptive Table 
-  demvars.data <- data %>% dplyr::select(c(demvars))
+  demvars.data <- data %>% dplyr::select(all_of(demvars))
   
   
   # recode the Gender factor so it will only show "Gender Diverse" in the summary table
@@ -625,8 +785,8 @@ data <- data %>% mutate(
   mctqvars <- names(mctq_all.score)
   
   scorevars <- c("Photophila_score", "Photophobia_score", "ASE_score",
-                 "ASE_levels", "Promis_sd_ad_sum", "Promis_sri_ad_sum",
-                 "Promis_sd_ped_sum", "Promis_sri_ped_sum", "PDS_score_m",
+                 "ASE_levels", "Promis_sd_sum", "Promis_sri_sum","PDS_score_m",
+                 #"Promis_sd_ped_sum", "Promis_sri_ped_sum","Promis_sd_ad_sum", "Promis_sri_ad_sum",
                  "PDS_score_f",  "F1_leba", "F2_leba", "F3_leba", "F4_leba", "F5_leba")
                  #add mctq scores
                
@@ -634,8 +794,10 @@ data <- data %>% mutate(
   
   # select only the data needed for analysis
   
-  analysis.data <- data %>% dplyr::select(c(record_id, demvars, slypos_demographics_tz.factor, 
-                                            fill_date, scorevars, mctqvars))
+  analysis.data <- data %>% dplyr::select(c(record_id, all_of(demvars), 
+                                            slypos_demographics_tz.factor, 
+                                            fill_date, all_of(scorevars), 
+                                            all_of(mctqvars)))
   
   
   save(analysis.data, file="./04_data_analysis/analysis.data.rda")
