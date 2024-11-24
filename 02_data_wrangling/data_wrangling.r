@@ -757,7 +757,7 @@ data <- data %>% mutate(
   num.countries <- as.data.frame(unique(TZ$V1))
   nrow(num.countries)
   
-  # calculate number of different countries in the dataset
+  # calculate number of different timezones in the dataset
   UTC <- as.data.frame(str_split_fixed(TZ$V2, "UTC", 2))
   num.UTC <- as.data.frame(unique(UTC$V2))
   nrow(num.UTC)
