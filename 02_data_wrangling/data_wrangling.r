@@ -97,6 +97,7 @@ data <-data %>%
 
 
 ## PROMIS MEASURES - Sum scores ------------------------------------------------
+#higher values mean higher impairment and sleep problems
 #PROMIS Sleep Disturbance sum score pediatric
 
 # data<-data %>%
