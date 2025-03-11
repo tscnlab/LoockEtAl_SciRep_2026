@@ -50,6 +50,10 @@ data <- data %>%
 #correlation of the two scores for photophobia and photophilia
 cor(data$Photophila_score, data$Photophobia_score)
 
+# Compute as one sum score for full paq?
+
+
+
 ## Assessment of Sleep Environment (ASE)----------------------------------------
 
 #recode the answers from 1 - 4 to 0 - 3
