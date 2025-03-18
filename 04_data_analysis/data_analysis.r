@@ -54,14 +54,12 @@ cols_to_remove <- c("record_id", "slypos_demographics_age",
                     "msw", "msf", "sd_week", "le_week", "msf_sc")
 
 # Remove all columns from "work" to "msf_sc" (inclusive)
-explor.data <- analysis.data %>% 
+cormat.data <- analysis.data %>% 
   select(-cols_to_remove)
 
-
-
-
-
-
+# Remove all columns from "work" to "msf_sc" (inclusive)
+pca.data <- cormat.data %>% 
+  select(-msf_sc_num, -PDS_score_m, -PDS_score_f)
 
 # Models Confirmatory hypotheses ----------------------------------------------
 
@@ -324,9 +322,45 @@ BF_sleepimp_fac4 <- bf_sleepimp_fac4 / bf_sleepimp_null
 print(BF_sleepimp_fac4)
 
 
-# Exploratory hypotheses--------------------------------------------------------
+# Exploratory analysis----------------------------------------------------------
 
+## correlation matrix-----------------------------------------------------------
 
-cor_matrix <- cor(explor.data,use="pairwise.complete.obs", method = "pearson")
+cor_matrix <- cor(cormat.data, use="pairwise.complete.obs", method = "pearson")
 print(cor_matrix)
+
+## Pca--------------------------------------------------------------------------
+
+pca.data
+
+# Compute PCA with centering and scaling
+pca_result <- prcomp(pca.data, center = TRUE, scale. = TRUE)
+
+# Display a summary of the PCA results
+summary(pca_result)
+
+
+# PCA plots
+
+# Plot a scree plot to visualize variance explained by each PC
+plot(pca_result, type = "l")
+
+
+# Extract variable loadings
+loadings <- as.data.frame(pca_result$rotation)
+loadings$variable <- rownames(loadings)
+
+# Plot the loadings for the first two PCs
+ggplot(loadings, aes(x = PC1, y = PC2, label = variable)) +
+  geom_point() +
+  ggrepel::geom_text_repel() +  # Requires ggrepel for non-overlapping labels
+  labs(title = "Variable Loadings Plot", x = "PC1", y = "PC2")
+
+
+
+# Create a correlation circle plot for the variables
+factoextra::fviz_pca_var(pca_result, 
+             col.var = "contrib",  # Color by contributions
+             repel = TRUE,         # Avoid label overlap
+             title = "PCA Variable Correlation Circle")
 
