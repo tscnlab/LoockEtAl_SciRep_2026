@@ -452,7 +452,7 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
  ####  exclude invalid data --> set certain vars to NA---------------------------------
  
  #many people misunderstood sprep "getting ready to fall asleep".
- # if getting ready to fall asleep < bedtime --> MA
+ # if getting ready to fall asleep < bedtime --> NA
  # if using an alarm on free days --> already no MSFsc computed
  
  # when to exclude light exposure time?
