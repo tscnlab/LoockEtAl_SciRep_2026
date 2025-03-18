@@ -18,10 +18,50 @@ pacman::p_load(lme4, stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
 
 load(file="./04_data_analysis/analysis.data.rda")
 
+# Get all column names
+all_names <- names(analysis.data)
 
+# prepare datasets for analysis-----------------------------------------------
+
+# create numeric chronotype var
 analysis.data <- analysis.data %>% 
-  mutate(msf_sc_num = as.numeric(msf_sc)/3600) %>% 
-  
+  mutate(msf_sc_num = as.numeric(msf_sc)/3600) 
+
+
+#create subdataset for MSF_sc without missing values
+analysis.data_MSF <- analysis.data %>%
+  filter(!is.na(msf_sc_num) & is.finite(msf_sc_num))
+
+
+
+
+
+# create subdataset with only numeric vars
+
+
+# all variables from confirmatory + other questionnaires & interesting demographics
+
+cols_to_remove <- c("record_id", "slypos_demographics_age",
+                    "slypos_demographics_sex.factor", 
+                    "slypos_demographics_gender.factor",
+                    "slypos_demographics_work_or_school.factor",
+                    "slypos_demographics_school.factor",
+                    "slypos_demographics_language.factor",
+                    "slypos_demographics_tz.factor",
+                    "fill_date","ASE_levels",
+                    "work", "wd", "alarm_f", "le_w", "le_f", "fd", "so_w", 
+                    "so_f", "gu_w", "gu_f", "sd_w", "sd_f", "tbt_w", "tbt_f", 
+                    "msw", "msf", "sd_week", "le_week", "msf_sc")
+
+# Remove all columns from "work" to "msf_sc" (inclusive)
+explor.data <- analysis.data %>% 
+  select(-cols_to_remove)
+
+
+
+
+
+
 
 # Models Confirmatory hypotheses ----------------------------------------------
 
@@ -162,12 +202,6 @@ summary(model_sleepimp_fac4)
 
 # Define the common null model (without the Leba factor)
 
-analysis.data_MSF <- analysis.data %>%
-  filter(!is.na(msf_sc_num) & is.finite(msf_sc_num))
-
-
-
-
 bf_chrono_null <- lmBF(msf_sc_num ~ slypos_demographics_age + 
                          slypos_demographics_sex.factor + 
                          slypos_demographics_school.factor, 
@@ -292,7 +326,7 @@ print(BF_sleepimp_fac4)
 
 # Exploratory hypotheses--------------------------------------------------------
 
-# all variables from confirmatory + other questionnaires & interesting demographics
 
-cor_matrix <- cor(analysis.data, use = "complete.obs", method = "pearson")
+cor_matrix <- cor(explor.data,use="pairwise.complete.obs", method = "pearson")
 print(cor_matrix)
+
