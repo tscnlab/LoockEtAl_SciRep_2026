@@ -804,6 +804,11 @@ data <- data %>% mutate(
                                             fill_date, all_of(scorevars), 
                                             all_of(mctqvars)))
   
+  # create numeric chronotype and weekly light exposure vars
+  analysis.data <- analysis.data %>% 
+    mutate(msf_sc_num = as.numeric(msf_sc)/3600,
+           le_week_num = as.numeric(le_week)/3600) 
+  
   
   save(analysis.data, file="./04_data_analysis/analysis.data.rda")
   

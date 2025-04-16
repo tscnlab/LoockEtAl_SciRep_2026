@@ -23,10 +23,6 @@ all_names <- names(analysis.data)
 
 # prepare datasets for analysis-----------------------------------------------
 
-# create numeric chronotype var
-analysis.data <- analysis.data %>% 
-  mutate(msf_sc_num = as.numeric(msf_sc)/3600) 
-
 
 #create subdataset for MSF_sc without missing values
 analysis.data_MSF <- analysis.data %>%
