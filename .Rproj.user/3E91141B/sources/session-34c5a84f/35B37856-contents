@@ -1,0 +1,42 @@
+### Evaluate screening questionnaires
+# save function "redcap_screening_fun.R" somewhere
+
+# DATA
+
+# Choose correct export file
+d = "BLUMEDayCiS_DATA_2025-06-12_0955.csv"
+
+
+# -------------------------------------------------------------------------------------------------------- #
+# WINDOWS
+# source("C:/Users/AnnSo/switchdrive/DayCiS/Analyses/R/Screening_Daycis/redcap_screening_fun.R")
+# p = "C:/Users/AnnSo/switchdrive/DayCiS/Screening/REDCap_exports"
+# 
+# CHECK <-  daycis_screening(p, d) # adapt paths
+# 
+# write.csv(CHECK, paste0("C:/Users/AnnSo/switchdrive/DayCiS/Screening/screening_output/", d), row.names = FALSE)
+
+
+
+# MAC (work) --------------------------------------------------------------
+source("/Users/loock0000/switchdrive/DayCiS/Analyses/3_SCREENING_Daycis/redcap_screening_fun.R")
+
+p = "/Users/loock0000/switchdrive/DayCiS/Screening/REDCap_exports"
+
+CHECK <-  daycis_screening(p, d) # adapt paths
+
+write.csv(CHECK, paste0("/Users/loock0000/switchdrive/DayCiS/Screening/screening_output/", d), row.names = FALSE)
+
+
+
+
+
+# -------------------------------------------------------------------------------------------------------- #
+# MAC (privat)
+# source("/Users/Ann-Sophie_1/switchdrive/DayCiS/Analyses/R/Screening_Daycis/redcap_screening_fun.R")
+# 
+# p = "/Users/Ann-Sophie_1/switchdrive/DayCiS/Screening/REDCap_exports"
+# 
+# CHECK <-  daycis_screening(p, d) # adapt paths
+# 
+# write.csv(CHECK, paste0("/Users/Ann-Sophie_1/switchdrive/DayCiS/Screening/screening_output/", d), row.names = FALSE)
