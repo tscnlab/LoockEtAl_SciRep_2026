@@ -1,4 +1,9 @@
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
+# macOS
+.DS_Store
+
+# RStudio
+*.Rproj.user/
+
+# Binary data files (if you don't need to version them here)
+*.rda
+*.RData
