@@ -1,32 +1,10 @@
 #Prepare Environment-----------------------------------------------
 # Code written for the Analysis of "Sleep And Light Exposure Behaviour"                                      
-# Code Authors: Rafael Lazar                                                                 
+# Code Authors: Rafael Lazar & Ann-Sophie Loock                                                                 
 
-# clean workspace and unload all packages--------------------------------------
+
 rm(list=ls())
 graphics.off()
-
-
-#unload packages that were loaded before (run function twice to "catch" all pkgs)
-lapply(names(sessionInfo()$otherPkgs), function(pkgs)
-  detach(
-    paste0('package:', pkgs),
-    character.only = T,
-    unload = T,
-    force = T
-  ))
-
-lapply(names(sessionInfo()$otherPkgs), function(pkgs)
-  detach(
-    paste0('package:', pkgs),
-    character.only = T,
-    unload = T,
-    force = T
-  ))
-
-
-
-
 
 #----- check if pacman is installed - if not install it
 if(!require(pacman)) install.packages("pacman")
@@ -38,8 +16,25 @@ pacman::p_load(stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
 
 # Read-in data ----------------------------------------------------------------
 
-load(file="01_dataimport/raw_data/data.rda")
+#Read the whole dataset
+rawdata=read.csv('01_dataimport/raw_data/SpitschanSleepSurvey_DATA_2024-08-07_1229.csv')
 
+# filter out incomplete data
+complete_df <- rawdata %>% filter(!is.na(slypos_leba_50))
+
+
+# reduce dataset 
+
+# take sample of the full dataset
+#uncomment this later
+# set.seed(123)
+# complete_df <- complete_df %>% sample_n(50)
+
+
+# set data for analysis to sample data (30 obs.)
+data <- complete_df
+
+rm(complete_df, rawdata)
 
 
 # Data cleaning-----------------------------------------------------------------
@@ -58,10 +53,128 @@ data <- data %>% filter (
 ## exclusion due to nonsensical replies-----------------------------------------
 # sleep time later than bedtime in mctq etc.
 
+# STEP 1: original parsing & adjustments
+mctq_checks <- data %>%
+  select(contains("mctq"), -contains("attentioncheck")) %>%
+  mutate(across(
+    c(slypos_mctq_03, slypos_mctq_04,
+      slypos_mctq_03_ped, slypos_mctq_04_ped),
+    ~ na_if(.x, "")
+  )) %>%
+  mutate(
+    # raw parses
+    bed_adult_raw   = hm(slypos_mctq_03),
+    sleep_adult_raw = hm(slypos_mctq_04),
+    bed_child_raw   = hm(slypos_mctq_03_ped),
+    sleep_child_raw = hm(slypos_mctq_04_ped),
+    
+    # 00:00/12:00 → 24h, 06:01–11:59 → +12h, 12:00–12:59 → +12h
+    bed_adult = case_when(
+      slypos_mctq_03  %in% c("00:00","12:00")                    ~ hours(24),
+      bed_adult_raw  > hm("06:00") & bed_adult_raw  <= hm("11:59") ~ bed_adult_raw + hours(12),
+      bed_adult_raw  >= hm("12:00") & bed_adult_raw  <  hm("13:00") ~ bed_adult_raw + hours(12),
+      TRUE                                                         ~ bed_adult_raw
+    ),
+    sleep_adult = case_when(
+      slypos_mctq_04  %in% c("00:00","12:00")                    ~ hours(24),
+      sleep_adult_raw > hm("06:00") & sleep_adult_raw <= hm("11:59")~ sleep_adult_raw + hours(12),
+      sleep_adult_raw >= hm("12:00") & sleep_adult_raw <  hm("13:00")~ sleep_adult_raw + hours(12),
+      TRUE                                                         ~ sleep_adult_raw
+    ),
+    bed_child = case_when(
+      slypos_mctq_03_ped %in% c("00:00","12:00")                    ~ hours(24),
+      bed_child_raw  > hm("06:00") & bed_child_raw  <= hm("11:59")   ~ bed_child_raw + hours(12),
+      bed_child_raw  >= hm("12:00") & bed_child_raw  <  hm("13:00")   ~ bed_child_raw + hours(12),
+      TRUE                                                           ~ bed_child_raw
+    ),
+    sleep_child = case_when(
+      slypos_mctq_04_ped %in% c("00:00","12:00")                    ~ hours(24),
+      sleep_child_raw > hm("06:00") & sleep_child_raw <= hm("11:59") ~ sleep_child_raw + hours(12),
+      sleep_child_raw >= hm("12:00") & sleep_child_raw <  hm("13:00") ~ sleep_child_raw + hours(12),
+      TRUE                                                           ~ sleep_child_raw
+    ),
+    
+    # coalesce + group tag
+    bed   = coalesce(bed_adult,   bed_child),
+    sleep = coalesce(sleep_adult, sleep_child),
+    group = if_else(!is.na(bed_adult), "Adult", "Child")
+  ) %>%
+  # if still inverted but early‐morning, bump sleep +24h
+  mutate(
+    sleep = case_when(
+      sleep < bed & sleep <= hours(6) ~ sleep + hours(24),
+      TRUE                            ~ sleep
+    )
+  ) %>%
+  select(-ends_with("_raw"))
 
+# STEP 2: identify all inverted cases & compute difference
+inverted_cases <- mctq_checks %>%
+  filter(!is.na(bed), !is.na(sleep), bed > sleep) %>%
+  mutate(diff = bed - sleep)
 
+# STEP 3: split into “correctable” (≤1 h) vs “true” (>1 h)
+to_correct <- inverted_cases %>% filter(diff <= hours(1))
+remaining_inverted <- inverted_cases %>% filter(diff > hours(1)) %>% select(-diff)
 
+# STEP 4: swap times for the small‐error cases
+corrected <- to_correct %>%
+  mutate(
+    # swap the parsed durations
+    bed_old = bed,
+    bed     = sleep,
+    sleep   = bed_old,
+    
+    # swap the original survey‐string columns
+    tmp_03     = slypos_mctq_03,
+    slypos_mctq_03 = slypos_mctq_04,
+    slypos_mctq_04 = tmp_03,
+    
+    tmp_03_ped = slypos_mctq_03_ped,
+    slypos_mctq_03_ped = slypos_mctq_04_ped,
+    slypos_mctq_04_ped = tmp_03_ped
+  ) %>%
+  select(-bed_old, -tmp_03, -tmp_03_ped, -diff)
 
+# STEP 5: reassemble a “cleaned” dataset where only >1 h errors remain inverted
+mctq_clean <- mctq_checks %>%
+  # keep non‐inverted or incomplete
+  filter(is.na(bed) | is.na(sleep) | bed <= sleep) %>%
+  # append back the ≤1 h fixes
+  bind_rows(corrected)
+
+# FINAL
+# a) Summary comparing before vs. after
+summary_tbl <- mctq_checks %>%
+  # “before” counts
+  filter(!is.na(bed), !is.na(sleep)) %>%
+  group_by(group) %>%
+  summarise(
+    completed       = n(),
+    inverted_before = sum(bed > sleep),
+    .groups         = "drop"
+  ) %>%
+  # true >1h cases not corrected
+  left_join(
+    remaining_inverted %>%
+      group_by(group) %>%
+      summarise(
+        inverted_after = n(),
+        .groups        = "drop"
+      ),
+    by = "group"
+  ) %>%
+  # compute how many got transferred back into the normal data
+  mutate(
+    transferred = inverted_before - inverted_after
+  )
+
+# b) The remaining “hard” inverted cases >1 h
+# remaining_inverted
+
+# Inspect
+print(summary_tbl)
+View(remaining_inverted)
 
 
 
