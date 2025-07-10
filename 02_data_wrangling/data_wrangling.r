@@ -1,6 +1,6 @@
 #Prepare Environment-----------------------------------------------
 # Code written for the Analysis of "Sleep And Light Exposure Behaviour"                                      
-# Code Authors: Rafael Lazar                                                                 
+# Code Authors: Rafael Lazar & Ann-Sophie Loock                                                                
 
 
 rm(list=ls())
@@ -50,7 +50,8 @@ data <- data %>%
 #correlation of the two scores for photophobia and photophilia
 cor(data$Photophila_score, data$Photophobia_score)
 
-# Compute as one sum score for full paq?
+# Compute as one sum score for full paq? 
+# -- No, decided to not do this and stick to the original interpretation of scores. 
 
 
 
@@ -89,8 +90,9 @@ data<-data %>%
            slypos_ase_012 + 
            slypos_ase_0123)
 
-#create levels: score: 0 to 9  =  low; 10 to 19 Moderate; 20 to 39 = High
-# high = appropriate sleep environment, low = unappropriate sleeping environment
+#create levels for ASE sum score: 
+# score 0 to 9  =  low; 10 to 19 moderate; 20 to 39 = high
+# interpretation: high = appropriate sleep environment, low = inappropriate sleeping environment
 
 data <-data %>%
   mutate(ASE_levels =    case_when(
@@ -164,15 +166,9 @@ data <- data %>%
                                   na.rm = TRUE))
 
 
-## Self-Administered Rating Scale for Pubertal Development --------------------
+## Self-Administered Rating Scale for Pubertal Development ---------------------
 
-
-#to-dos
-# recode the "I don't know" items (5) and the "prefer not to say" items (6)
-
-#recode the yes/no question for girls to (no=1) and (yes=4) 
-#& prefer not to say...
-
+# recode the "I don't know" items (5) and the "prefer not to say" items (6) to NA
 data$slypos_puberty_01 <- ifelse(data$slypos_puberty_01 == 5 | data$slypos_puberty_01 == 6, NA, data$slypos_puberty_01)
 data$slypos_puberty_02 <- ifelse(data$slypos_puberty_02 == 5 | data$slypos_puberty_02 == 6, NA, data$slypos_puberty_02)
 data$slypos_puberty_03 <- ifelse(data$slypos_puberty_03 == 5 | data$slypos_puberty_03 == 6, NA, data$slypos_puberty_03)
@@ -180,7 +176,8 @@ data$slypos_puberty_boys_01 <- ifelse(data$slypos_puberty_boys_01 == 5 | data$sl
 data$slypos_puberty_boys_02 <- ifelse(data$slypos_puberty_boys_02 == 5 | data$slypos_puberty_boys_02 == 6, NA, data$slypos_puberty_boys_02)
 data$slypos_puberty_girl_01 <- ifelse(data$slypos_puberty_girl_01 == 5 | data$slypos_puberty_girl_01 == 6 , NA, data$slypos_puberty_girl_01)
 
-
+#recode the yes/no question for girls to (no=1) and (yes=4) 
+#& prefer not to say to NA
 data$slypos_puberty_girls_02 <-  ifelse(data$slypos_puberty_girls_02 == 3, NA,
                                        ifelse(data$slypos_puberty_girls_02 == 1, 4,
                                               ifelse(data$slypos_puberty_girls_02 == 2, 1, 
@@ -210,242 +207,534 @@ data <- data %>% mutate(
 
 ## MCTQ ------------------------------------------------------------------------
 
-#use mctq r package for mctq variables? 
+# To do's:
 # what to do with the caffeine and food timing items?
 
 
+#### Sanity check & cleaning --------------------
+# i.e., sleep time later than bedtime in mctq (items 3 and 4 entered incorrectly)
+
+# STEP 1: subset and filter to regular work / school schedule only
+mctq_checks <- data %>% 
+  select(
+    record_id,                    #For later merges
+    slypos_mctq_01.factor,        #"Do you have a regular work schedule?"
+    slypos_mctq_01_ped.factor,    #"Do you have a regular school schedule?"
+    contains("mctq"),             #mctq items
+    -contains("attentioncheck")   #no attention checks
+    ) %>%
+  # Define flags for irregular schedules
+  mutate(
+    slypos_mctq_01.factor = na_if(as.character(slypos_mctq_01.factor), ""), #set empty fields to NA
+    slypos_mctq_01_ped.factor = na_if(as.character(slypos_mctq_01_ped.factor), "") #set empty fields to NA
+  ) %>%
+  mutate(
+    regular = case_when(
+      slypos_mctq_01.factor == "Yes" ~ TRUE, 
+      slypos_mctq_01_ped.factor == "Yes" ~ TRUE, 
+      TRUE ~ FALSE
+    )) %>%
+  # select only regular schedules
+  filter(regular) %>% 
+  select(-regular) # drop helper column 
+
+# STEP 2: fix bed- / sleep times (items 3 / 4)
+mctq_checks <- mctq_checks %>%
+  mutate(across(
+    c(slypos_mctq_03, slypos_mctq_04,
+      slypos_mctq_03_ped, slypos_mctq_04_ped,
+      slypos_mctq_10, slypos_mctq_11, 
+      slypos_mctq_10_ped, slypos_mctq_11_ped),
+    ~ na_if(as.character(.x), "") #set empty fields to NA
+  )) %>%
+  mutate(
+    # raw parse to hms
+    bed_adult_raw   = hm(slypos_mctq_03),
+    sleep_adult_raw = hm(slypos_mctq_04),
+    bed_child_raw   = hm(slypos_mctq_03_ped),
+    sleep_child_raw = hm(slypos_mctq_04_ped),
+    # for free days
+    bed_adult_free_raw   = hm(slypos_mctq_10),
+    sleep_adult_free_raw = hm(slypos_mctq_11),
+    bed_child_free_raw   = hm(slypos_mctq_10_ped),
+    sleep_child_free_raw = hm(slypos_mctq_11_ped),
+    
+    # time corrections: 
+    # 00:00/12:00 → 24h   (unifying midnight) 
+    # 12:00–12:59 → +12h  (assuming close-to-midnight sleep)
+    # 06:01–11:59 → +12h  (assuming 12h entry format instead of 24h)
+    
+    bed_adult = case_when(
+      slypos_mctq_03  %in% c("00:00","12:00")                    ~ hours(24),
+      bed_adult_raw  > hm("06:00") & bed_adult_raw  <= hm("11:59") ~ bed_adult_raw + hours(12),
+      bed_adult_raw  >= hm("12:00") & bed_adult_raw  <  hm("13:00") ~ bed_adult_raw + hours(12),
+      TRUE                                                         ~ bed_adult_raw
+    ),
+    sleep_adult = case_when(
+      slypos_mctq_04  %in% c("00:00","12:00")                    ~ hours(24),
+      sleep_adult_raw > hm("06:00") & sleep_adult_raw <= hm("11:59")~ sleep_adult_raw + hours(12),
+      sleep_adult_raw >= hm("12:00") & sleep_adult_raw <  hm("13:00")~ sleep_adult_raw + hours(12),
+      TRUE                                                         ~ sleep_adult_raw
+    ),
+    bed_child = case_when(
+      slypos_mctq_03_ped %in% c("00:00","12:00")                    ~ hours(24),
+      bed_child_raw  > hm("06:00") & bed_child_raw  <= hm("11:59")   ~ bed_child_raw + hours(12),
+      bed_child_raw  >= hm("12:00") & bed_child_raw  <  hm("13:00")   ~ bed_child_raw + hours(12),
+      TRUE                                                           ~ bed_child_raw
+    ),
+    sleep_child = case_when(
+      slypos_mctq_04_ped %in% c("00:00","12:00")                    ~ hours(24),
+      sleep_child_raw > hm("06:00") & sleep_child_raw <= hm("11:59") ~ sleep_child_raw + hours(12),
+      sleep_child_raw >= hm("12:00") & sleep_child_raw <  hm("13:00") ~ sleep_child_raw + hours(12),
+      TRUE                                                           ~ sleep_child_raw
+    ),
+    # for free days
+    bed_adult_free = case_when(
+      slypos_mctq_10  %in% c("00:00","12:00")                    ~ hours(24),
+      bed_adult_free_raw  > hm("06:00") & bed_adult_free_raw  <= hm("11:59") ~ bed_adult_free_raw + hours(12),
+      bed_adult_free_raw  >= hm("12:00") & bed_adult_free_raw  <  hm("13:00") ~ bed_adult_free_raw + hours(12),
+      TRUE                                                               ~ bed_adult_free_raw
+    ), 
+    sleep_adult_free = case_when(
+      slypos_mctq_11  %in% c("00:00","12:00")                    ~ hours(24),
+      sleep_adult_free_raw > hm("06:00") & sleep_adult_free_raw <= hm("11:59") ~ sleep_adult_free_raw + hours(12),
+      sleep_adult_free_raw >= hm("12:00") & sleep_adult_free_raw <  hm("13:00") ~ sleep_adult_free_raw + hours(12),
+      TRUE                                                                    ~ sleep_adult_free_raw
+    ), 
+    bed_child_free = case_when(
+      slypos_mctq_10_ped %in% c("00:00","12:00")                    ~ hours(24),
+      bed_child_free_raw  > hm("06:00") & bed_child_free_raw  <= hm("11:59")   ~ bed_child_free_raw + hours(12),
+      bed_child_free_raw  >= hm("12:00") & bed_child_free_raw  <  hm("13:00")   ~ bed_child_free_raw + hours(12),
+      TRUE                                                                      ~ bed_child_free_raw
+    ), 
+    sleep_child_free = case_when(
+      slypos_mctq_11_ped %in% c("00:00","12:00")                    ~ hours(24),
+      sleep_child_free_raw > hm("06:00") & sleep_child_free_raw <= hm("11:59") ~ sleep_child_free_raw + hours(12),
+      sleep_child_free_raw >= hm("12:00") & sleep_child_free_raw <  hm("13:00") ~ sleep_child_free_raw + hours(12),
+      TRUE                                                                      ~ sleep_child_free_raw
+    ),
+    
+    # coalesce + group tag
+    bed   = coalesce(bed_adult,   bed_child),
+    sleep = coalesce(sleep_adult, sleep_child),
+    bed_free = coalesce(bed_adult_free,   bed_child_free), # free days
+    sleep_free = coalesce(sleep_adult_free, sleep_child_free),
+    
+    group = case_when(
+      slypos_mctq_01.factor == "Yes" ~ "Adult",
+      slypos_mctq_01_ped.factor == "Yes" ~ "Child", 
+      TRUE ~ NA_character_
+    )) %>%
+  
+  # if still inverted but early‐morning, bump sleep +24h (next day shift)
+  mutate(
+    sleep = case_when(
+      sleep < bed & sleep <= hours(6) ~ sleep + hours(24),
+      TRUE                            ~ sleep
+    ), 
+    sleep_free = case_when(
+      sleep_free < bed_free & sleep_free <= hours(6) ~ sleep_free + hours(24),
+      TRUE                                           ~ sleep_free
+    )
+  ) %>%
+  select(-ends_with("_raw"))
+
+# STEP 3: tag cases (OK / CORRECTED / FLAG)
+mctq_tagged <- mctq_checks %>%
+  mutate(
+    inverted = (bed > sleep), 
+    diff = bed - sleep,
+    status = case_when(
+      !inverted ~ "ok", 
+      inverted & diff <= hours(1) ~ "corrected", 
+      inverted & diff > hours(1) ~ "flag"
+    ), 
+    inverted_free = (bed_free > sleep_free),
+    diff_free     = bed_free - sleep_free,
+    status_free   = case_when(
+      !inverted_free               ~ "ok_free",
+      inverted_free & diff_free <= hours(1) ~ "corrected_free",
+      TRUE                                ~ "flag_free"
+    )
+  )
+
+# STEP 4: build a cleaned MCTQ dataset and merge back
+mctq_final <- mctq_tagged %>%
+  mutate(
+    # swap ≤1h work-day cases
+    bed_new        = if_else(status == "corrected",            sleep,        bed),
+    sleep_new      = if_else(status == "corrected",            bed,          sleep),
+    # swap ≤1h free-day cases
+    bed_free_new   = if_else(status_free == "corrected_free",  sleep_free,   bed_free),
+    sleep_free_new = if_else(status_free == "corrected_free",  bed_free,     sleep_free),
+    
+    # original string swaps for work-day
+    slypos_mctq_03_new     = case_when(
+      status == "corrected" ~ slypos_mctq_04,
+      status == "flag"      ~ NA_character_,
+      TRUE                    ~ slypos_mctq_03
+    ),
+    slypos_mctq_04_new     = case_when(
+      status == "corrected" ~ slypos_mctq_03,
+      status == "flag"      ~ NA_character_,
+      TRUE                    ~ slypos_mctq_04
+    ),
+    slypos_mctq_03_ped_new = case_when(
+      status == "corrected" ~ slypos_mctq_04_ped,
+      status == "flag"      ~ NA_character_,
+      TRUE                    ~ slypos_mctq_03_ped
+    ),
+    slypos_mctq_04_ped_new = case_when(
+      status == "corrected" ~ slypos_mctq_03_ped,
+      status == "flag"      ~ NA_character_,
+      TRUE                    ~ slypos_mctq_04_ped
+    ),
+    # original string swaps for free-day
+    slypos_mctq_10_new     = case_when(
+      status_free == "corrected_free" ~ slypos_mctq_11,
+      status_free == "flag_free"      ~ NA_character_,
+      TRUE                              ~ slypos_mctq_10
+    ),
+    slypos_mctq_11_new     = case_when(
+      status_free == "corrected_free" ~ slypos_mctq_10,
+      status_free == "flag_free"      ~ NA_character_,
+      TRUE                              ~ slypos_mctq_11
+    ),
+    slypos_mctq_10_ped_new = case_when(
+      status_free == "corrected_free" ~ slypos_mctq_11_ped,
+      status_free == "flag_free"      ~ NA_character_,
+      TRUE                              ~ slypos_mctq_10_ped
+    ),
+    slypos_mctq_11_ped_new = case_when(
+      status_free == "corrected_free" ~ slypos_mctq_10_ped,
+      status_free == "flag_free"      ~ NA_character_,
+      TRUE                              ~ slypos_mctq_11_ped
+    )
+  ) %>%
+  select(
+    record_id, group, status, status_free,
+    bed_new,  sleep_new,    bed_free_new,  sleep_free_new,
+    slypos_mctq_03_new, slypos_mctq_04_new,
+    slypos_mctq_03_ped_new, slypos_mctq_04_ped_new,
+    slypos_mctq_10_new, slypos_mctq_11_new,
+    slypos_mctq_10_ped_new, slypos_mctq_11_ped_new
+  )
+
+# merge back onto `data` by record_id:
+data <- data %>%
+  left_join(
+    mctq_final,
+    by = "record_id"
+  )
+
+
+# Compute MSFsc for analysis ------------------------------------
+msf <- data %>%
+  # Select columns needed for MSFsc (keeping record_id, group, status)
+  select(
+    record_id, status, status_free, group,
+    wd             = slypos_mctq_02,         # work days
+    bt_w           = slypos_mctq_03_new,     # bedtime on work days
+    sprep_w        = slypos_mctq_04_new,     # sleep time on work days
+    slat_w         = slypos_mctq_05,         # sleep onset latency on work days
+    se_w           = slypos_mctq_06,         # sleep end on work days
+    si_w           = slypos_mctq_07,         # sleep inertia on work days
+    # free-day equivalents:
+    bt_f           = slypos_mctq_10_new,
+    sprep_f        = slypos_mctq_11_new,     # sleep time  
+    slat_f         = slypos_mctq_12,         # sleep onset latency
+    se_f           = slypos_mctq_13,         # sleep end
+    si_f           = slypos_mctq_14,         # sleep inertia
+    alarm_f        = slypos_mctq_15,         # alarm 
+    
+    # and for pediatric sample: 
+    wd_ped             = slypos_mctq_02_ped,         
+    bt_w_ped           = slypos_mctq_03_ped_new,     
+    sprep_w_ped        = slypos_mctq_04_ped_new,     
+    slat_w_ped         = slypos_mctq_05_ped,         
+    se_w_ped           = slypos_mctq_06_ped,         
+    si_w_ped           = slypos_mctq_07_ped,         
+    # free-day equivalents:
+    bt_f_ped           = slypos_mctq_10_ped_new,
+    sprep_f_ped        = slypos_mctq_11_ped_new,       
+    slat_f_ped         = slypos_mctq_12_ped,         
+    se_f_ped           = slypos_mctq_13_ped,         
+    si_f_ped           = slypos_mctq_14_ped,         
+    alarm_f_ped        = slypos_mctq_15_ped,          
+  ) %>%
+  mutate(across(
+    c(slat_w, slat_w_ped, slat_f, slat_f_ped, si_w, si_w_ped, si_f, si_f_ped), 
+    as.numeric
+  )) %>%
+  # Drop any flagged rows
+  filter(status != "flag", status_free != "flag_free") %>%
+  # Parse to hms / durations
+  mutate(
+    # pick adult vs child answers
+    wd      = if_else(group=="Adult", as.integer(wd), as.integer(wd_ped)), 
+    bt_w    = if_else(group=="Adult", hms::parse_hm(as.character(bt_w)), hms::parse_hm(as.character(bt_w_ped))),
+    sprep_w = if_else(group=="Adult", hms::parse_hm(as.character(sprep_w)), hms::parse_hm(as.character(sprep_w_ped))),
+    bt_f    = if_else(group=="Adult", hms::parse_hm(as.character(bt_f)), hms::parse_hm(as.character(bt_f_ped))),
+    sprep_f = if_else(group=="Adult", hms::parse_hm(as.character(sprep_f)), hms::parse_hm(as.character(sprep_f_ped))),
+    alarm_f = if_else(group=="Adult", as.logical(alarm_f == "1"), as.logical(alarm_f_ped == "1")),
+    slat_w  = if_else(group=="Adult", slat_w, slat_w_ped),
+    se_w    = if_else(group=="Adult", se_w, se_w_ped),
+    si_w    = if_else(group=="Adult", si_w, si_w_ped),
+    slat_f  = if_else(group=="Adult", slat_f, slat_f_ped),
+    se_f    = if_else(group=="Adult", se_f, se_f_ped),
+    si_f    = if_else(group=="Adult", si_f, si_f_ped)
+    ) %>%
+  # Format conversions
+  mutate(
+    slat_w = dminutes(as.numeric(slat_w)), # sleep onset latency
+    slat_f = dminutes(as.numeric(slat_f)),
+    se_w   = hms::parse_hm(as.character(se_w)), # sleep end
+    se_f   = hms::parse_hm(as.character(se_f)),
+    si_w   = dminutes(as.numeric(si_w)), # sleep inertia
+    si_f   = dminutes(as.numeric(si_f))
+  ) %>%
+  # Compute the MCTQ intermediates & msf_sc in one go
+  mutate(
+    so_w    = so(sprep_w, slat_w), # sleep onset
+    so_f    = so(sprep_f, slat_f),
+    sd_w    = sdu(so_w, se_w),     # sleep duration
+    sd_f    = sdu(so_f, se_f),
+    msf     = msl(so_f, sd_f),     # midsleep
+    sd_week = sd_week(sd_w, sd_f, wd),
+    msf_sc  = msf_sc(msf, sd_w, sd_f, sd_week, alarm_f) # midsleep corrected
+  )
+
+data <- data %>%
+  left_join(
+    msf %>% select(record_id, msf_sc), # only MSFsc selected for now
+    by = "record_id"
+  )
+
+
+# RAFA's MCTQ code (not currently/no longer implemented) ------------------
 
 #### create subdata set for mctq --------------------------------------------
 # Collect the names of all variables that include "mctq" in the name
-mctq_columns <- grep("mctq", colnames(data), value = TRUE)
-mctq_columns
+# mctq_columns <- grep("mctq", colnames(data), value = TRUE)
+# mctq_columns
+# 
+# # Filter out the column names that contain "ped"
+# filtered_columns <- grep(".factor", mctq_columns, invert = TRUE, value = TRUE)
+# 
+# # Filter out the column names that contain "ped"
+# filtered_columns <- grep("attentioncheck", filtered_columns, invert = TRUE, value = TRUE)
+# 
+# # Print the result
+# filtered_columns
+# 
+# # Filter out the column names that contain "ped"
+# mctq_ped <- grep("ped", filtered_columns, invert = F, value = TRUE)
+# 
+# # Filter out the column names that contain "ped"
+# mctq_ad <- grep("ped", filtered_columns, invert = T, value = TRUE)
+# 
+# #create subdataset
+# mctq_ad.data <-  data %>% dplyr::select(c(record_id, mctq_ad))
+# #create subdataset
+# mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
 
-# Filter out the column names that contain "ped"
-filtered_columns <- grep(".factor", mctq_columns, invert = TRUE, value = TRUE)
-
-# Filter out the column names that contain "ped"
-filtered_columns <- grep("attentioncheck", filtered_columns, invert = TRUE, value = TRUE)
-
-# Print the result
-filtered_columns
-
-# Filter out the column names that contain "ped"
-mctq_ped <- grep("ped", filtered_columns, invert = F, value = TRUE)
-
-# Filter out the column names that contain "ped"
-mctq_ad <- grep("ped", filtered_columns, invert = T, value = TRUE)
-
-#create subdataset
-mctq_ad.data <-  data %>% dplyr::select(c(record_id, mctq_ad))
-#create subdataset
-mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
-
-# Items "regular work schedule" and  regular school schedule"  need to be 1 ("Yes")
-#for all further calculations
- data$slypos_mctq_01
- data$slypos_mctq_01_ped
- 
- 
- #### load testdataset for mctq--------------------------------------------------
- 
- mctq.testdata <- readr::read_csv(
-   mctq::raw_data("vignette_mctq.csv"),
-   col_types = readr::cols(.default = "c")
- )
-
-
- #### Converting data to mctq form ---------------------------------------------
- 
- #renaming according to mctq pacakge and papers
- mctq_ad.data <-  mctq_ad.data %>% rename(
-   #id = record_id,
-   work = slypos_mctq_01, # need to convert into logical 1=True, 2=No
-   #work day variables
-   wd = slypos_mctq_02, 
-   bt_w = slypos_mctq_03, 
-   sprep_w = slypos_mctq_04,
-   slat_w = slypos_mctq_05,
-   se_w = slypos_mctq_06,
-   si_w = slypos_mctq_07,
-   alarm_w =slypos_mctq_08, # need to convert into logical 1=True, 0=No
-   wake_before_w = slypos_mctq_09, # need to convert into logical 1=True, 0=No
-   le_w = slypos_mctq_25,
-   # free day variables
-
-   bt_f = slypos_mctq_10, 
-   sprep_f = slypos_mctq_11,
-   slat_f = slypos_mctq_12,
-   se_f = slypos_mctq_13,
-   si_f = slypos_mctq_14,
-   alarm_f=slypos_mctq_15, # need to convert into logical 1=True, 0=No
-   reasons_f = slypos_mctq_16, # need to convert into logical 1=True, 0=No
-   reasons_why_f = slypos_mctq_17, # need to convert into factor with 3 levels: 1= "Child(ren)/pet(s), 2="Hobbies", 3="Others"
-   le_f = slypos_mctq_26,
- )
-
- 
- 
- mctq_ped.data <-  mctq_ped.data %>% rename(
-   #id = record_id,
-   work = slypos_mctq_01_ped, # need to convert into logical 1=True, 2=No
-   #work day variables
-   wd = slypos_mctq_02_ped, 
-   bt_w = slypos_mctq_03_ped, 
-   sprep_w = slypos_mctq_04_ped,
-   slat_w = slypos_mctq_05_ped,
-   se_w = slypos_mctq_06_ped,
-   si_w = slypos_mctq_07_ped,
-   alarm_w =slypos_mctq_08_ped, # need to convert into logical 1=True, 0=No
-   wake_before_w = slypos_mctq_09_ped, # need to convert into logical 1=True, 0=No
-   le_w = slypos_mctq_25_ped,
-   # free day variables
-   
-   bt_f = slypos_mctq_10_ped, 
-   sprep_f = slypos_mctq_11_ped,
-   slat_f = slypos_mctq_12_ped,
-   se_f = slypos_mctq_13_ped,
-   si_f = slypos_mctq_14_ped,
-   alarm_f=slypos_mctq_15_ped, # need to convert into logical 1=True, 0=No
-   reasons_f = slypos_mctq_16_ped, # need to convert into logical 1=True, 0=No
-   reasons_why_f = slypos_mctq_17_ped, # need to convert into factor with 3 levels: 1= "Family members/pets, 2="Hobbies", 3="Others"
-   le_f = slypos_mctq_26_ped,
- )
- 
- # Convert into Logical vars
- mctq_ad.data$work <- mctq_ad.data$work==1
- mctq_ped.data$work <- mctq_ped.data$work==1
- mctq_ad.data$alarm_w <- mctq_ad.data$alarm_w==1
- mctq_ped.data$alarm_w <- mctq_ped.data$alarm_w==1
- mctq_ad.data$wake_before_w <-  mctq_ad.data$wake_before_w==1
- mctq_ped.data$wake_before_w <- mctq_ped.data$wake_before_w==1
- mctq_ad.data$alarm_f <- mctq_ad.data$alarm_f==1
- mctq_ped.data$alarm_f <- mctq_ped.data$alarm_f==1
- mctq_ad.data$reasons_f <- mctq_ad.data$reasons_f==1
- mctq_ped.data$reasons_f <- mctq_ped.data$reasons_f==1
- 
- # Convert into Factor vars
- mctq_ad.data$reasons_why_f = as.factor(mctq_ad.data$reasons_why_f)
- levels(mctq_ad.data$reasons_why_f) = c("Child(ren)/pet(s)","Hobbies","Others")
- 
- mctq_ped.data$reasons_why_f = as.factor(mctq_ped.data$reasons_why_f)
- levels(mctq_ped.data$reasons_why_f) = c("Family members/pet(s)","Hobbies","Others")
- 
- # Convert into hms vars
- mctq_ad.data$bt_w <- hms::parse_hm(mctq_ad.data$bt_w)
- mctq_ad.data$sprep_w <- hms::parse_hm(mctq_ad.data$sprep_w)
- mctq_ad.data$se_w <- hms::parse_hm(mctq_ad.data$se_w)
- mctq_ad.data$bt_f <- hms::parse_hm(mctq_ad.data$bt_f)
- mctq_ad.data$sprep_f <- hms::parse_hm(mctq_ad.data$sprep_f)
- mctq_ad.data$se_f <- hms::parse_hm(mctq_ad.data$se_f)
- 
- mctq_ped.data$bt_w <- hms::parse_hm(mctq_ped.data$bt_w)
- mctq_ped.data$sprep_w <- hms::parse_hm(mctq_ped.data$sprep_w)
- mctq_ped.data$se_w <- hms::parse_hm(mctq_ped.data$se_w)
- mctq_ped.data$bt_f <- hms::parse_hm(mctq_ped.data$bt_f)
- mctq_ped.data$sprep_f <- hms::parse_hm(mctq_ped.data$sprep_f)
- mctq_ped.data$se_f <- hms::parse_hm(mctq_ped.data$se_f)
- 
- 
- 
- # Convert into duration vars
- mctq_ad.data$slat_w <-  lubridate::dminutes(mctq_ad.data$slat_w)
- mctq_ad.data$slat_f <-  lubridate::dminutes(mctq_ad.data$slat_f)
- mctq_ad.data$si_w <-  lubridate::dminutes(mctq_ad.data$si_w)
- mctq_ad.data$si_f <-  lubridate::dminutes(mctq_ad.data$si_f)
- 
- mctq_ad.data$le_w[mctq_ad.data$le_w== ""] <- NA
- mctq_ad.data$le_w <- sapply(mctq_ad.data$le_w, convert_to_decimal_hours)
- mctq_ad.data$le_w <- lubridate::dhours(mctq_ad.data$le_w)
- mctq_ad.data$le_f[mctq_ad.data$le_f== ""] <- NA
- mctq_ad.data$le_f <- sapply(mctq_ad.data$le_f, convert_to_decimal_hours)
- mctq_ad.data$le_f <- lubridate::dhours(mctq_ad.data$le_f)
-
- 
- # Convert into duration vars
- mctq_ped.data$slat_w <-  lubridate::dminutes(mctq_ped.data$slat_w)
- mctq_ped.data$slat_f <-  lubridate::dminutes(mctq_ped.data$slat_f)
- mctq_ped.data$si_w <-  lubridate::dminutes(mctq_ped.data$si_w)
- mctq_ped.data$si_f <-  lubridate::dminutes(mctq_ped.data$si_f)
- 
- mctq_ped.data$le_w[mctq_ped.data$le_w== ""] <- NA
- mctq_ped.data$le_w <- sapply(mctq_ped.data$le_w, convert_to_decimal_hours)
- mctq_ped.data$le_w <- lubridate::dhours(mctq_ped.data$le_w)
- mctq_ped.data$le_f[mctq_ped.data$le_f== ""] <- NA
- mctq_ped.data$le_f <- sapply(mctq_ped.data$le_f, convert_to_decimal_hours)
- mctq_ped.data$le_f <- lubridate::dhours(mctq_ped.data$le_f)
- 
- ####  change wrong formatting ----------------------------------------------
-  #translate wrong format (e.g. 11 to 23:00)
- 
-  # Convert hours to seconds
- hours_to_add <- hms::hms(12*3600)
- 
- #pediatric Mctq
- 
- # Adjusting `sprep_w` based on the condition
- mctq_ped.data$sprep_w <- ifelse(mctq_ped.data$sprep_w >= hms::parse_hm("08:00:00") & 
-                                   mctq_ped.data$sprep_w < hms::parse_hm("12:00:00"),
-                                 mctq_ped.data$sprep_w + hours_to_add,
-                                 mctq_ped.data$sprep_w)
- 
- # Adjusting `sprep_w` based on the condition
- mctq_ped.data$sprep_w <- ifelse(mctq_ped.data$sprep_w >= hms::parse_hm("12:00:00") & 
-                                   mctq_ped.data$sprep_w < hms::parse_hm("18:00:00"),
-                                 mctq_ped.data$sprep_w - hours_to_add,
-                                 mctq_ped.data$sprep_w)
- 
- mctq_ped.data$sprep_w <- hms::as_hms(mctq_ped.data$sprep_w)
- 
- 
- # Adjusting `bt_w` based on the condition
-
- # Adjusting `sprep_w` based on the condition
- mctq_ped.data$bt_w <- ifelse(mctq_ped.data$bt_w >= hms::parse_hm("08:00:00") & 
-                                   mctq_ped.data$bt_w < hms::parse_hm("12:00:00"),
-                                 mctq_ped.data$bt_w + hours_to_add,
-                                 mctq_ped.data$bt_w)
- 
- # Adjusting `bt_w` based on the condition
- mctq_ped.data$bt_w <- ifelse(mctq_ped.data$bt_w >= hms::parse_hm("12:00:00") & 
-                                   mctq_ped.data$bt_w < hms::parse_hm("18:00:00"),
-                                 mctq_ped.data$bt_w - hours_to_add,
-                                 mctq_ped.data$bt_w)
- 
- mctq_ped.data$bt_w <- hms::as_hms(mctq_ped.data$bt_w)
- 
- 
- #adult Mctq
- 
- # Adjusting `sprep_w` based on the condition
- mctq_ad.data$sprep_w <- ifelse(mctq_ad.data$sprep_w >= hms::parse_hm("08:00:00") & 
-                                   mctq_ad.data$sprep_w < hms::parse_hm("12:00:00"),
-                                 mctq_ad.data$sprep_w + hours_to_add,
-                                 mctq_ad.data$sprep_w)
- 
- # Adjusting `sprep_w` based on the condition
- mctq_ad.data$sprep_w <- ifelse(mctq_ad.data$sprep_w >= hms::parse_hm("12:00:00") & 
-                                   mctq_ad.data$sprep_w < hms::parse_hm("18:00:00"),
-                                 mctq_ad.data$sprep_w - hours_to_add,
-                                 mctq_ad.data$sprep_w)
- 
- mctq_ad.data$sprep_w <- hms::as_hms(mctq_ad.data$sprep_w)
- 
- 
- # Adjusting `bt_w` based on the condition
- 
- # Adjusting `sprep_w` based on the condition
- mctq_ad.data$bt_w <- ifelse(mctq_ad.data$bt_w >= hms::parse_hm("08:00:00") & 
-                                mctq_ad.data$bt_w < hms::parse_hm("12:00:00"),
-                              mctq_ad.data$bt_w + hours_to_add,
-                              mctq_ad.data$bt_w)
- 
- # Adjusting `bt_w` based on the condition
- mctq_ad.data$bt_w <- ifelse(mctq_ad.data$bt_w >= hms::parse_hm("12:00:00") & 
-                                mctq_ad.data$bt_w < hms::parse_hm("18:00:00"),
-                              mctq_ad.data$bt_w - hours_to_add,
-                              mctq_ad.data$bt_w)
- 
- mctq_ad.data$bt_w <- hms::as_hms(mctq_ad.data$bt_w)
+#### load testdataset for mctq--------------------------------------------------
+# 
+# mctq.testdata <- readr::read_csv(
+#   mctq::raw_data("vignette_mctq.csv"),
+#   col_types = readr::cols(.default = "c")
+# )
+# 
+#  #### Converting data to mctq form ---------------------------------------------
+#  
+#  #renaming according to mctq pacakge and papers
+#  mctq_ad.data <-  mctq_ad.data %>% rename(
+#    #id = record_id,
+#    work = slypos_mctq_01, # need to convert into logical 1=True, 2=No
+#    #work day variables
+#    wd = slypos_mctq_02, 
+#    bt_w = slypos_mctq_03, 
+#    sprep_w = slypos_mctq_04,
+#    slat_w = slypos_mctq_05,
+#    se_w = slypos_mctq_06,
+#    si_w = slypos_mctq_07,
+#    alarm_w =slypos_mctq_08, # need to convert into logical 1=True, 0=No
+#    wake_before_w = slypos_mctq_09, # need to convert into logical 1=True, 0=No
+#    le_w = slypos_mctq_25,
+#    # free day variables
+# 
+#    bt_f = slypos_mctq_10, 
+#    sprep_f = slypos_mctq_11,
+#    slat_f = slypos_mctq_12,
+#    se_f = slypos_mctq_13,
+#    si_f = slypos_mctq_14,
+#    alarm_f=slypos_mctq_15, # need to convert into logical 1=True, 0=No
+#    reasons_f = slypos_mctq_16, # need to convert into logical 1=True, 0=No
+#    reasons_why_f = slypos_mctq_17, # need to convert into factor with 3 levels: 1= "Child(ren)/pet(s), 2="Hobbies", 3="Others"
+#    le_f = slypos_mctq_26,
+#  )
+# 
+# 
+#  mctq_ped.data <-  mctq_ped.data %>% rename(
+#    #id = record_id,
+#    work = slypos_mctq_01_ped, # need to convert into logical 1=True, 2=No
+#    #work day variables
+#    wd = slypos_mctq_02_ped, 
+#    bt_w = slypos_mctq_03_ped, 
+#    sprep_w = slypos_mctq_04_ped,
+#    slat_w = slypos_mctq_05_ped,
+#    se_w = slypos_mctq_06_ped,
+#    si_w = slypos_mctq_07_ped,
+#    alarm_w =slypos_mctq_08_ped, # need to convert into logical 1=True, 0=No
+#    wake_before_w = slypos_mctq_09_ped, # need to convert into logical 1=True, 0=No
+#    le_w = slypos_mctq_25_ped,
+#    # free day variables
+#    
+#    bt_f = slypos_mctq_10_ped, 
+#    sprep_f = slypos_mctq_11_ped,
+#    slat_f = slypos_mctq_12_ped,
+#    se_f = slypos_mctq_13_ped,
+#    si_f = slypos_mctq_14_ped,
+#    alarm_f=slypos_mctq_15_ped, # need to convert into logical 1=True, 0=No
+#    reasons_f = slypos_mctq_16_ped, # need to convert into logical 1=True, 0=No
+#    reasons_why_f = slypos_mctq_17_ped, # need to convert into factor with 3 levels: 1= "Family members/pets, 2="Hobbies", 3="Others"
+#    le_f = slypos_mctq_26_ped,
+#  )
+#  
+#  # Convert into Logical vars
+#  mctq_ad.data$work <- mctq_ad.data$work==1
+#  mctq_ped.data$work <- mctq_ped.data$work==1
+#  mctq_ad.data$alarm_w <- mctq_ad.data$alarm_w==1
+#  mctq_ped.data$alarm_w <- mctq_ped.data$alarm_w==1
+#  mctq_ad.data$wake_before_w <-  mctq_ad.data$wake_before_w==1
+#  mctq_ped.data$wake_before_w <- mctq_ped.data$wake_before_w==1
+#  mctq_ad.data$alarm_f <- mctq_ad.data$alarm_f==1
+#  mctq_ped.data$alarm_f <- mctq_ped.data$alarm_f==1
+#  mctq_ad.data$reasons_f <- mctq_ad.data$reasons_f==1
+#  mctq_ped.data$reasons_f <- mctq_ped.data$reasons_f==1
+#  
+#  # Convert into Factor vars
+#  mctq_ad.data$reasons_why_f = as.factor(mctq_ad.data$reasons_why_f)
+#  levels(mctq_ad.data$reasons_why_f) = c("Child(ren)/pet(s)","Hobbies","Others")
+#  
+#  mctq_ped.data$reasons_why_f = as.factor(mctq_ped.data$reasons_why_f)
+#  levels(mctq_ped.data$reasons_why_f) = c("Family members/pet(s)","Hobbies","Others")
+#  
+#  # Convert into hms vars
+#  mctq_ad.data$bt_w <- hms::parse_hm(mctq_ad.data$bt_w)
+#  mctq_ad.data$sprep_w <- hms::parse_hm(mctq_ad.data$sprep_w)
+#  mctq_ad.data$se_w <- hms::parse_hm(mctq_ad.data$se_w)
+#  mctq_ad.data$bt_f <- hms::parse_hm(mctq_ad.data$bt_f)
+#  mctq_ad.data$sprep_f <- hms::parse_hm(mctq_ad.data$sprep_f)
+#  mctq_ad.data$se_f <- hms::parse_hm(mctq_ad.data$se_f)
+#  
+#  mctq_ped.data$bt_w <- hms::parse_hm(mctq_ped.data$bt_w)
+#  mctq_ped.data$sprep_w <- hms::parse_hm(mctq_ped.data$sprep_w)
+#  mctq_ped.data$se_w <- hms::parse_hm(mctq_ped.data$se_w)
+#  mctq_ped.data$bt_f <- hms::parse_hm(mctq_ped.data$bt_f)
+#  mctq_ped.data$sprep_f <- hms::parse_hm(mctq_ped.data$sprep_f)
+#  mctq_ped.data$se_f <- hms::parse_hm(mctq_ped.data$se_f)
+#  
+#  
+#  # Convert into duration vars
+#  mctq_ad.data$slat_w <-  lubridate::dminutes(mctq_ad.data$slat_w)
+#  mctq_ad.data$slat_f <-  lubridate::dminutes(mctq_ad.data$slat_f)
+#  mctq_ad.data$si_w <-  lubridate::dminutes(mctq_ad.data$si_w)
+#  mctq_ad.data$si_f <-  lubridate::dminutes(mctq_ad.data$si_f)
+#  
+#  mctq_ad.data$le_w[mctq_ad.data$le_w== ""] <- NA
+#  mctq_ad.data$le_w <- sapply(mctq_ad.data$le_w, convert_to_decimal_hours)
+#  mctq_ad.data$le_w <- lubridate::dhours(mctq_ad.data$le_w)
+#  mctq_ad.data$le_f[mctq_ad.data$le_f== ""] <- NA
+#  mctq_ad.data$le_f <- sapply(mctq_ad.data$le_f, convert_to_decimal_hours)
+#  mctq_ad.data$le_f <- lubridate::dhours(mctq_ad.data$le_f)
+# 
+#  
+#  # Convert into duration vars
+#  mctq_ped.data$slat_w <-  lubridate::dminutes(mctq_ped.data$slat_w)
+#  mctq_ped.data$slat_f <-  lubridate::dminutes(mctq_ped.data$slat_f)
+#  mctq_ped.data$si_w <-  lubridate::dminutes(mctq_ped.data$si_w)
+#  mctq_ped.data$si_f <-  lubridate::dminutes(mctq_ped.data$si_f)
+#  
+#  mctq_ped.data$le_w[mctq_ped.data$le_w== ""] <- NA
+#  mctq_ped.data$le_w <- sapply(mctq_ped.data$le_w, convert_to_decimal_hours)
+#  mctq_ped.data$le_w <- lubridate::dhours(mctq_ped.data$le_w)
+#  mctq_ped.data$le_f[mctq_ped.data$le_f== ""] <- NA
+#  mctq_ped.data$le_f <- sapply(mctq_ped.data$le_f, convert_to_decimal_hours)
+#  mctq_ped.data$le_f <- lubridate::dhours(mctq_ped.data$le_f)
+#  
+#  ####  change wrong formatting ----------------------------------------------
+#   #translate wrong format (e.g. 11 to 23:00)
+#  
+#   # Convert hours to seconds
+#  hours_to_add <- hms::hms(12*3600)
+#  
+#  #pediatric Mctq
+#  
+#  # Adjusting `sprep_w` based on the condition
+#  mctq_ped.data$sprep_w <- ifelse(mctq_ped.data$sprep_w >= hms::parse_hm("08:00:00") & 
+#                                    mctq_ped.data$sprep_w < hms::parse_hm("12:00:00"),
+#                                  mctq_ped.data$sprep_w + hours_to_add,
+#                                  mctq_ped.data$sprep_w)
+#  
+#  # Adjusting `sprep_w` based on the condition
+#  mctq_ped.data$sprep_w <- ifelse(mctq_ped.data$sprep_w >= hms::parse_hm("12:00:00") & 
+#                                    mctq_ped.data$sprep_w < hms::parse_hm("18:00:00"),
+#                                  mctq_ped.data$sprep_w - hours_to_add,
+#                                  mctq_ped.data$sprep_w)
+#  
+#  mctq_ped.data$sprep_w <- hms::as_hms(mctq_ped.data$sprep_w)
+#  
+#  
+#  # Adjusting `bt_w` based on the condition
+# 
+#  # Adjusting `sprep_w` based on the condition
+#  mctq_ped.data$bt_w <- ifelse(mctq_ped.data$bt_w >= hms::parse_hm("08:00:00") & 
+#                                    mctq_ped.data$bt_w < hms::parse_hm("12:00:00"),
+#                                  mctq_ped.data$bt_w + hours_to_add,
+#                                  mctq_ped.data$bt_w)
+#  
+#  # Adjusting `bt_w` based on the condition
+#  mctq_ped.data$bt_w <- ifelse(mctq_ped.data$bt_w >= hms::parse_hm("12:00:00") & 
+#                                    mctq_ped.data$bt_w < hms::parse_hm("18:00:00"),
+#                                  mctq_ped.data$bt_w - hours_to_add,
+#                                  mctq_ped.data$bt_w)
+#  
+#  mctq_ped.data$bt_w <- hms::as_hms(mctq_ped.data$bt_w)
+#  
+#  
+#  #adult Mctq
+#  
+#  # Adjusting `sprep_w` based on the condition
+#  mctq_ad.data$sprep_w <- ifelse(mctq_ad.data$sprep_w >= hms::parse_hm("08:00:00") & 
+#                                    mctq_ad.data$sprep_w < hms::parse_hm("12:00:00"),
+#                                  mctq_ad.data$sprep_w + hours_to_add,
+#                                  mctq_ad.data$sprep_w)
+#  
+#  # Adjusting `sprep_w` based on the condition
+#  mctq_ad.data$sprep_w <- ifelse(mctq_ad.data$sprep_w >= hms::parse_hm("12:00:00") & 
+#                                    mctq_ad.data$sprep_w < hms::parse_hm("18:00:00"),
+#                                  mctq_ad.data$sprep_w - hours_to_add,
+#                                  mctq_ad.data$sprep_w)
+#  
+#  mctq_ad.data$sprep_w <- hms::as_hms(mctq_ad.data$sprep_w)
+#  
+#  
+#  # Adjusting `bt_w` based on the condition
+#  
+#  # Adjusting `sprep_w` based on the condition
+#  mctq_ad.data$bt_w <- ifelse(mctq_ad.data$bt_w >= hms::parse_hm("08:00:00") & 
+#                                 mctq_ad.data$bt_w < hms::parse_hm("12:00:00"),
+#                               mctq_ad.data$bt_w + hours_to_add,
+#                               mctq_ad.data$bt_w)
+#  
+#  # Adjusting `bt_w` based on the condition
+#  mctq_ad.data$bt_w <- ifelse(mctq_ad.data$bt_w >= hms::parse_hm("12:00:00") & 
+#                                 mctq_ad.data$bt_w < hms::parse_hm("18:00:00"),
+#                               mctq_ad.data$bt_w - hours_to_add,
+#                               mctq_ad.data$bt_w)
+#  
+#  mctq_ad.data$bt_w <- hms::as_hms(mctq_ad.data$bt_w)
  
  
  
@@ -459,143 +748,148 @@ mctq_ped.data <-  data %>% dplyr::select(c(record_id, mctq_ped))
  # outlier plotting or smth like this?
  
  #work days
-
- # Applying the condition and setting the specified columns to NA
- mctq_ped.data$sprep_w[!(mctq_ped.data$sprep_w > mctq_ped.data$bt_w |  
-                           mctq_ped.data$sprep_w == mctq_ped.data$bt_w |
-                           (mctq_ped.data$sprep_w - mctq_ped.data$bt_w)/3600 < -18)] <- NA
- 
- # mctq_ped.data$bt_w[!(mctq_ped.data$sprep_w > mctq_ped.data$bt_w |  
- #                        mctq_ped.data$sprep_w == mctq_ped.data$bt_w |
- #                        (mctq_ped.data$sprep_w - mctq_ped.data$bt_w)/3600 < -18)] <- NA
- 
- 
- #do the same for adult questionnaire
- 
- # Applying the condition and setting the specified columns to NA
- mctq_ad.data$sprep_w[!(mctq_ad.data$sprep_w > mctq_ad.data$bt_w |  
-                           mctq_ad.data$sprep_w == mctq_ad.data$bt_w |
-                           (mctq_ad.data$sprep_w - mctq_ad.data$bt_w)/3600 < -18)] <- NA
- 
- # mctq_ad.data$bt_w[!(mctq_ad.data$sprep_w > mctq_ad.data$bt_w |  
- #                        mctq_ad.data$sprep_w == mctq_ad.data$bt_w |
- #                        (mctq_ad.data$sprep_w - mctq_ad.data$bt_w)/3600 < -18)] <- NA
+# 
+#  # Applying the condition and setting the specified columns to NA
+#  mctq_ped.data$sprep_w[!(mctq_ped.data$sprep_w > mctq_ped.data$bt_w |  
+#                            mctq_ped.data$sprep_w == mctq_ped.data$bt_w |
+#                            (mctq_ped.data$sprep_w - mctq_ped.data$bt_w)/3600 < -18)] <- NA
+#  
+#  # mctq_ped.data$bt_w[!(mctq_ped.data$sprep_w > mctq_ped.data$bt_w |  
+#  #                        mctq_ped.data$sprep_w == mctq_ped.data$bt_w |
+#  #                        (mctq_ped.data$sprep_w - mctq_ped.data$bt_w)/3600 < -18)] <- NA
+#  
+#  
+#  #do the same for adult questionnaire
+#  
+#  # Applying the condition and setting the specified columns to NA
+#  mctq_ad.data$sprep_w[!(mctq_ad.data$sprep_w > mctq_ad.data$bt_w |  
+#                            mctq_ad.data$sprep_w == mctq_ad.data$bt_w |
+#                            (mctq_ad.data$sprep_w - mctq_ad.data$bt_w)/3600 < -18)] <- NA
+#  
+#  # mctq_ad.data$bt_w[!(mctq_ad.data$sprep_w > mctq_ad.data$bt_w |  
+#  #                        mctq_ad.data$sprep_w == mctq_ad.data$bt_w |
+#  #                        (mctq_ad.data$sprep_w - mctq_ad.data$bt_w)/3600 < -18)] <- NA
+#  # 
+#  # 
+#  
+#  
+#  #free days
+#  # Applying the condition and setting the specified columns to NA
+#  mctq_ped.data$sprep_f[!(mctq_ped.data$sprep_f > mctq_ped.data$bt_f |  
+#                            mctq_ped.data$sprep_f == mctq_ped.data$bt_f |
+#                            (mctq_ped.data$sprep_f - mctq_ped.data$bt_f)/3600 < -18)] <- NA
+#  
+#  # mctq_ped.data$bt_f[!(mctq_ped.data$sprep_f > mctq_ped.data$bt_f |  
+#  #                        mctq_ped.data$sprep_f == mctq_ped.data$bt_f |
+#  #                        (mctq_ped.data$sprep_f - mctq_ped.data$bt_f)/3600 < -18)] <- NA
+#  
+#  
+#  #do the same for adult questionnaire
+#  
+#  # Applying the condition and setting the specified columns to NA
+#  mctq_ad.data$sprep_f[!(mctq_ad.data$sprep_f > mctq_ad.data$bt_f |  
+#                           mctq_ad.data$sprep_f == mctq_ad.data$bt_f |
+#                           (mctq_ad.data$sprep_f - mctq_ad.data$bt_f)/3600 < -18)] <- NA
+#  
+#  # mctq_ad.data$bt_f[!(mctq_ad.data$sprep_f > mctq_ad.data$bt_f |  
+#  #                       mctq_ad.data$sprep_f == mctq_ad.data$bt_f |
+#  #                       (mctq_ad.data$sprep_f - mctq_ad.data$bt_f)/3600 < -20)] <- NA
  # 
- # 
  
- 
- #free days
- # Applying the condition and setting the specified columns to NA
- mctq_ped.data$sprep_f[!(mctq_ped.data$sprep_f > mctq_ped.data$bt_f |  
-                           mctq_ped.data$sprep_f == mctq_ped.data$bt_f |
-                           (mctq_ped.data$sprep_f - mctq_ped.data$bt_f)/3600 < -18)] <- NA
- 
- # mctq_ped.data$bt_f[!(mctq_ped.data$sprep_f > mctq_ped.data$bt_f |  
- #                        mctq_ped.data$sprep_f == mctq_ped.data$bt_f |
- #                        (mctq_ped.data$sprep_f - mctq_ped.data$bt_f)/3600 < -18)] <- NA
- 
- 
- #do the same for adult questionnaire
- 
- # Applying the condition and setting the specified columns to NA
- mctq_ad.data$sprep_f[!(mctq_ad.data$sprep_f > mctq_ad.data$bt_f |  
-                          mctq_ad.data$sprep_f == mctq_ad.data$bt_f |
-                          (mctq_ad.data$sprep_f - mctq_ad.data$bt_f)/3600 < -18)] <- NA
- 
- # mctq_ad.data$bt_f[!(mctq_ad.data$sprep_f > mctq_ad.data$bt_f |  
- #                       mctq_ad.data$sprep_f == mctq_ad.data$bt_f |
- #                       (mctq_ad.data$sprep_f - mctq_ad.data$bt_f)/3600 < -20)] <- NA
- # 
- 
- 
- ##### Adult version computations -------------------------------------------------------------
- # compute free days
- mctq_ad.data <- mutate(mctq_ad.data, fd = fd(mctq_ad.data$wd))
- # compute Sleep onset work days
- mctq_ad.data <- mutate(mctq_ad.data, so_w = so(mctq_ad.data$sprep_w, mctq_ad.data$slat_w))
- # compute Sleep onset free days
- mctq_ad.data <- mutate(mctq_ad.data, so_f = so(mctq_ad.data$sprep_f, mctq_ad.data$slat_f))
- # compute get up time on work days 
- mctq_ad.data <- mutate(mctq_ad.data, gu_w = gu(mctq_ad.data$se_w, mctq_ad.data$si_w))
- # compute get up time on free days 
- mctq_ad.data <- mutate(mctq_ad.data, gu_f = gu(mctq_ad.data$se_f, mctq_ad.data$si_f))
- # compute sleep duration on work days 
- mctq_ad.data <- mutate(mctq_ad.data, sd_w = sdu(mctq_ad.data$so_w, mctq_ad.data$se_w))
- # compute sleep duration on free days 
- mctq_ad.data <- mutate(mctq_ad.data, sd_f = sdu(mctq_ad.data$so_f, mctq_ad.data$se_f))
- # compute  total time in bed on work days 
- mctq_ad.data <- mutate(mctq_ad.data, tbt_w = tbt(mctq_ad.data$bt_w, mctq_ad.data$gu_w))
- # compute  total time in bed on work days 
- mctq_ad.data <- mutate(mctq_ad.data, tbt_f = tbt(mctq_ad.data$bt_f, mctq_ad.data$gu_f))
- # compute mid sleep time on work days 
- mctq_ad.data <- mutate(mctq_ad.data, msw = msl(mctq_ad.data$so_w, mctq_ad.data$sd_w))
- # compute mid sleep time on free days 
- mctq_ad.data <- mutate(mctq_ad.data, msf = msl(mctq_ad.data$so_f, mctq_ad.data$sd_f))
- # compute average weekly sleep duration
- mctq_ad.data <- mutate(mctq_ad.data, sd_week = sd_week(mctq_ad.data$sd_w, mctq_ad.data$sd_f,
-                                                          mctq_ad.data$wd))
- # compute average weekly light expposure
- mctq_ad.data <- mutate(mctq_ad.data, le_week = le_week(mctq_ad.data$le_w, mctq_ad.data$le_f,
-                                                          mctq_ad.data$wd))
- # compute chronotype MSFsc
- mctq_ad.data <- mutate(mctq_ad.data, msf_sc = msf_sc(mctq_ad.data$msf, mctq_ad.data$sd_w, 
-                                                        mctq_ad.data$sd_f, mctq_ad.data$sd_week,
-                                                        mctq_ad.data$alarm_f))
- 
- 
-##### Ped version computations -------------------------------------------------------------
- # compute free days
- mctq_ped.data <- mutate(mctq_ped.data, fd = fd(mctq_ped.data$wd))
- # compute Sleep onset work days
- mctq_ped.data <- mutate(mctq_ped.data, so_w = so(mctq_ped.data$sprep_w, mctq_ped.data$slat_w))
- # compute Sleep onset free days
- mctq_ped.data <- mutate(mctq_ped.data, so_f = so(mctq_ped.data$sprep_f, mctq_ped.data$slat_f))
- # compute get up time on work days 
- mctq_ped.data <- mutate(mctq_ped.data, gu_w = gu(mctq_ped.data$se_w, mctq_ped.data$si_w))
- # compute get up time on free days 
- mctq_ped.data <- mutate(mctq_ped.data, gu_f = gu(mctq_ped.data$se_f, mctq_ped.data$si_f))
- # compute sleep duration on work days 
- mctq_ped.data <- mutate(mctq_ped.data, sd_w = sdu(mctq_ped.data$so_w, mctq_ped.data$se_w))
- # compute sleep duration on free days 
- mctq_ped.data <- mutate(mctq_ped.data, sd_f = sdu(mctq_ped.data$so_f, mctq_ped.data$se_f))
- # compute  total time in bed on work days 
- mctq_ped.data <- mutate(mctq_ped.data, tbt_w = tbt(mctq_ped.data$bt_w, mctq_ped.data$gu_w))
- # compute  total time in bed on work days 
- mctq_ped.data <- mutate(mctq_ped.data, tbt_f = tbt(mctq_ped.data$bt_f, mctq_ped.data$gu_f))
- # compute mid sleep time on work days 
- mctq_ped.data <- mutate(mctq_ped.data, msw = msl(mctq_ped.data$so_w, mctq_ped.data$sd_w))
- # compute mid sleep time on free days 
- mctq_ped.data <- mutate(mctq_ped.data, msf = msl(mctq_ped.data$so_f, mctq_ped.data$sd_f))
- # compute average weekly sleep duration
- mctq_ped.data <- mutate(mctq_ped.data, sd_week = sd_week(mctq_ped.data$sd_w, mctq_ped.data$sd_f,
-                                                          mctq_ped.data$wd))
- # compute average weekly light expposure
- mctq_ped.data <- mutate(mctq_ped.data, le_week = le_week(mctq_ped.data$le_w, mctq_ped.data$le_f,
-                                                          mctq_ped.data$wd))
- # compute chronotype MSFsc
- mctq_ped.data <- mutate(mctq_ped.data, msf_sc = msf_sc(mctq_ped.data$msf, mctq_ped.data$sd_w, 
-                                                        mctq_ped.data$sd_f, mctq_ped.data$sd_week,
-                                                        mctq_ped.data$alarm_f))
- 
- 
-# select all needed mctq vars here: you can add others later
- 
-mctq_ad.score <- mctq_ad.data %>% select (c(record_id, work, wd, alarm_f, le_w:msf_sc))
-mctq_ped.score <- mctq_ped.data %>% select (c(record_id, work, wd, alarm_f, le_w:msf_sc))
-  
-# Combine dataframes and fill NAs from mctq_ped.score where mctq_ad.score has NAs
-mctq_all.score <- mctq_ad.score %>%
-  full_join(mctq_ped.score, by = "record_id", suffix = c(".mctq_ad.score", ".mctq_ped.score")) %>%
-  mutate(across(ends_with(".mctq_ad.score"), ~ coalesce(.x, get(sub(".mctq_ad.score", ".mctq_ped.score", cur_column())))))
+#  
+#  ##### Adult version computations -------------------------------------------------------------
+#  # compute free days
+#  mctq_ad.data <- mutate(mctq_ad.data, fd = fd(mctq_ad.data$wd))
+#  # compute Sleep onset work days
+#  mctq_ad.data <- mutate(mctq_ad.data, so_w = so(mctq_ad.data$sprep_w, mctq_ad.data$slat_w))
+#  # compute Sleep onset free days
+#  mctq_ad.data <- mutate(mctq_ad.data, so_f = so(mctq_ad.data$sprep_f, mctq_ad.data$slat_f))
+#  # compute get up time on work days 
+#  mctq_ad.data <- mutate(mctq_ad.data, gu_w = gu(mctq_ad.data$se_w, mctq_ad.data$si_w))
+#  # compute get up time on free days 
+#  mctq_ad.data <- mutate(mctq_ad.data, gu_f = gu(mctq_ad.data$se_f, mctq_ad.data$si_f))
+#  # compute sleep duration on work days 
+#  mctq_ad.data <- mutate(mctq_ad.data, sd_w = sdu(mctq_ad.data$so_w, mctq_ad.data$se_w))
+#  # compute sleep duration on free days 
+#  mctq_ad.data <- mutate(mctq_ad.data, sd_f = sdu(mctq_ad.data$so_f, mctq_ad.data$se_f))
+#  # compute  total time in bed on work days 
+#  mctq_ad.data <- mutate(mctq_ad.data, tbt_w = tbt(mctq_ad.data$bt_w, mctq_ad.data$gu_w))
+#  # compute  total time in bed on work days 
+#  mctq_ad.data <- mutate(mctq_ad.data, tbt_f = tbt(mctq_ad.data$bt_f, mctq_ad.data$gu_f))
+#  # compute mid sleep time on work days 
+#  mctq_ad.data <- mutate(mctq_ad.data, msw = msl(mctq_ad.data$so_w, mctq_ad.data$sd_w))
+#  # compute mid sleep time on free days 
+#  mctq_ad.data <- mutate(mctq_ad.data, msf = msl(mctq_ad.data$so_f, mctq_ad.data$sd_f))
+#  # compute average weekly sleep duration
+#  mctq_ad.data <- mutate(mctq_ad.data, sd_week = sd_week(mctq_ad.data$sd_w, mctq_ad.data$sd_f,
+#                                                           mctq_ad.data$wd))
+#  # compute average weekly light expposure
+#  mctq_ad.data <- mutate(mctq_ad.data, le_week = le_week(mctq_ad.data$le_w, mctq_ad.data$le_f,
+#                                                           mctq_ad.data$wd))
+#  # compute chronotype MSFsc
+#  mctq_ad.data <- mutate(mctq_ad.data, msf_sc = msf_sc(mctq_ad.data$msf, mctq_ad.data$sd_w, 
+#                                                         mctq_ad.data$sd_f, mctq_ad.data$sd_week,
+#                                                         mctq_ad.data$alarm_f))
+#  
+#  
+# ##### Ped version computations -------------------------------------------------------------
+#  # compute free days
+#  mctq_ped.data <- mutate(mctq_ped.data, fd = fd(mctq_ped.data$wd))
+#  # compute Sleep onset work days
+#  mctq_ped.data <- mutate(mctq_ped.data, so_w = so(mctq_ped.data$sprep_w, mctq_ped.data$slat_w))
+#  # compute Sleep onset free days
+#  mctq_ped.data <- mutate(mctq_ped.data, so_f = so(mctq_ped.data$sprep_f, mctq_ped.data$slat_f))
+#  # compute get up time on work days 
+#  mctq_ped.data <- mutate(mctq_ped.data, gu_w = gu(mctq_ped.data$se_w, mctq_ped.data$si_w))
+#  # compute get up time on free days 
+#  mctq_ped.data <- mutate(mctq_ped.data, gu_f = gu(mctq_ped.data$se_f, mctq_ped.data$si_f))
+#  # compute sleep duration on work days 
+#  mctq_ped.data <- mutate(mctq_ped.data, sd_w = sdu(mctq_ped.data$so_w, mctq_ped.data$se_w))
+#  # compute sleep duration on free days 
+#  mctq_ped.data <- mutate(mctq_ped.data, sd_f = sdu(mctq_ped.data$so_f, mctq_ped.data$se_f))
+#  # compute  total time in bed on work days 
+#  mctq_ped.data <- mutate(mctq_ped.data, tbt_w = tbt(mctq_ped.data$bt_w, mctq_ped.data$gu_w))
+#  # compute  total time in bed on work days 
+#  mctq_ped.data <- mutate(mctq_ped.data, tbt_f = tbt(mctq_ped.data$bt_f, mctq_ped.data$gu_f))
+#  # compute mid sleep time on work days 
+#  mctq_ped.data <- mutate(mctq_ped.data, msw = msl(mctq_ped.data$so_w, mctq_ped.data$sd_w))
+#  # compute mid sleep time on free days 
+#  mctq_ped.data <- mutate(mctq_ped.data, msf = msl(mctq_ped.data$so_f, mctq_ped.data$sd_f))
+#  # compute average weekly sleep duration
+#  mctq_ped.data <- mutate(mctq_ped.data, sd_week = sd_week(mctq_ped.data$sd_w, mctq_ped.data$sd_f,
+#                                                           mctq_ped.data$wd))
+#  # compute average weekly light expposure
+#  mctq_ped.data <- mutate(mctq_ped.data, le_week = le_week(mctq_ped.data$le_w, mctq_ped.data$le_f,
+#                                                           mctq_ped.data$wd))
+#  # compute chronotype MSFsc
+#  mctq_ped.data <- mutate(mctq_ped.data, msf_sc = msf_sc(mctq_ped.data$msf, mctq_ped.data$sd_w, 
+#                                                         mctq_ped.data$sd_f, mctq_ped.data$sd_week,
+#                                                         mctq_ped.data$alarm_f))
+#  
+#  
+# # select all needed mctq vars here: you can add others later
+#  
+# mctq_ad.score <- mctq_ad.data %>% select (c(record_id, work, wd, alarm_f, le_w:msf_sc))
+# mctq_ped.score <- mctq_ped.data %>% select (c(record_id, work, wd, alarm_f, le_w:msf_sc))
+#   
+# # Combine dataframes and fill NAs from mctq_ped.score where mctq_ad.score has NAs
+# mctq_all.score <- mctq_ad.score %>%
+#   full_join(mctq_ped.score, by = "record_id", suffix = c(".mctq_ad.score", ".mctq_ped.score")) %>%
+#   mutate(across(ends_with(".mctq_ad.score"), ~ coalesce(.x, get(sub(".mctq_ad.score", ".mctq_ped.score", cur_column())))))
+# 
+# # Remove the now redundant .mctq_ped.score columns
+# mctq_all.score <- mctq_all.score %>%
+#   select(-ends_with(".mctq_ped.score"))%>%
+#   rename_with(~ sub("\\.mctq_ad\\.score$", "", .x), ends_with(".mctq_ad.score")) #return the original names
 
-# Remove the now redundant .mctq_ped.score columns
-mctq_all.score <- mctq_all.score %>%
-  select(-ends_with(".mctq_ped.score"))%>%
-  rename_with(~ sub("\\.mctq_ad\\.score$", "", .x), ends_with(".mctq_ad.score")) #return the original names
+ # 
+# # Items "regular work schedule" and  regular school schedule"  need to be 1 ("Yes")
+# #for all further calculations
+# data$slypos_mctq_01
+# data$slypos_mctq_01_ped
+ 
 
- 
- 
- 
+
  ## LEBA factor scores ----------------------------------------------------------
 
 
