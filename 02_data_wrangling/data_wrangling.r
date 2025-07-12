@@ -506,9 +506,45 @@ msf <- data %>%
 
 data <- data %>%
   left_join(
-    msf %>% select(record_id, msf_sc), # only MSFsc selected for now
+    msf %>% select(record_id, msf, msf_sc), # only MSFsc selected for now
     by = "record_id"
   )
+
+# Add light exposure from MCTQ
+light_expo <- data %>% select(
+  record_id, group, 
+  wd = slypos_mctq_02, 
+  le_w = slypos_mctq_25,
+  le_f = slypos_mctq_26,
+  
+  wd_ped = slypos_mctq_02_ped, 
+  le_w_ped = slypos_mctq_25_ped,
+  le_f_ped = slypos_mctq_26_ped
+  ) %>%
+  # Convert to correct format: Blanks -> NAs
+  mutate(across(
+    c(le_w, le_f, le_w_ped, le_f_ped),
+    ~ na_if(as.character(.x), "")
+  )) %>%
+  # Select corresponding variables
+  filter(!is.na(group)) %>%
+  mutate(
+    wd   = if_else(group=="Adult", as.integer(wd), as.integer(wd_ped)),
+    le_w = if_else(group=="Adult",
+                   as.duration(hm(le_w)),
+                   as.duration(hm(le_w_ped))),
+    le_f = if_else(group=="Adult",
+                   as.duration(hm(le_f)),
+                   as.duration(hm(le_f_ped)))
+  ) %>%
+  # 4) compute weekly average light exposure
+  mutate(
+    le_week = le_week(le_w, le_f, wd)
+  ) %>%
+  select(record_id, le_week)
+
+data <- data %>% left_join(light_expo, by = "record_id")
+
 
 
 # RAFA's MCTQ code (not currently/no longer implemented) ------------------
@@ -1029,7 +1065,7 @@ data <- data %>% mutate(
                   "Yes"= "No")
   
   
-  #save demoraphic variables
+  #save demographic variables
   save(demvars.data,file="./03_demographics/demvars.data.rda")
   
  
@@ -1078,25 +1114,26 @@ data <- data %>% mutate(
   
   ## Subdataset Sum scores of questionnaires------------------------------------
   
-  data <- merge(data, mctq_all.score, by="record_id")
+  #data <- merge(data, mctq_all.score, by="record_id")
   
   
-  mctqvars <- names(mctq_all.score)
+  #mctqvars <- names(mctq_all.score)
   
   scorevars <- c("Photophila_score", "Photophobia_score", "ASE_score",
                  "ASE_levels", "Promis_sd_sum", "Promis_sri_sum","PDS_score_m",
                  #"Promis_sd_ped_sum", "Promis_sri_ped_sum","Promis_sd_ad_sum", "Promis_sri_ad_sum",
-                 "PDS_score_f",  "F1_leba", "F2_leba", "F3_leba", "F4_leba", "F5_leba")
-                 #add mctq scores
+                 "PDS_score_f",  "msf", "msf_sc", "le_week", "F1_leba", "F2_leba", "F3_leba", "F4_leba", "F5_leba")
+                
                
   ## create and save dataset for data analysis ----------------------------------
   
   # select only the data needed for analysis
   
-  analysis.data <- data %>% dplyr::select(c(record_id, all_of(demvars), 
+  analysis.data <- data %>% dplyr::select(c(record_id, group, 
+                                            all_of(demvars), 
                                             slypos_demographics_tz.factor, 
-                                            fill_date, all_of(scorevars), 
-                                            all_of(mctqvars)))
+                                            fill_date, 
+                                            all_of(scorevars)))
   
   # create numeric chronotype and weekly light exposure vars
   analysis.data <- analysis.data %>% 
