@@ -1,6 +1,6 @@
 #Prepare Environment-----------------------------------------------
 # Code written for the Analysis of "Sleep And Light Exposure Behaviour"                                      
-# Code Authors: Rafael Lazar                                                                 
+# Code Authors: Rafael Lazar & Ann-Sophie Loock                                                                 
 
 
 rm(list=ls())
@@ -25,37 +25,36 @@ all_names <- names(analysis.data)
 
 
 #create subdataset for MSF_sc without missing values
-analysis.data_MSF <- analysis.data %>%
-  filter(!is.na(msf_sc_num) & is.finite(msf_sc_num))
-
-
-
+# this is necesary for lmBF that does not accept missing values in dependent variable
+# analysis.data_MSF <- analysis.data %>%
+#   filter(!is.na(msf_sc_num) & is.finite(msf_sc_num))
 
 
 # create subdataset with only numeric vars
 
 
 # all variables from confirmatory + other questionnaires & interesting demographics
+# 
+# cols_to_remove <- c("record_id", "slypos_demographics_age",
+#                     "slypos_demographics_sex.factor", 
+#                     "slypos_demographics_gender.factor",
+#                     "slypos_demographics_work_or_school.factor",
+#                     "slypos_demographics_school.factor",
+#                     "slypos_demographics_language.factor",
+#                     "slypos_demographics_tz.factor",
+#                     "fill_date","ASE_levels",
+#                     "work", "wd", "alarm_f", "le_w", "le_f", "fd", "so_w", 
+#                     "so_f", "gu_w", "gu_f", "sd_w", "sd_f", "tbt_w", "tbt_f", 
+#                     "msw", "msf", "sd_week", "le_week", "msf_sc")
+# 
+# # Remove all columns from "work" to "msf_sc" (inclusive)
+# cormat.data <- analysis.data %>% 
+#   select(-cols_to_remove)
+# 
+# # Remove all columns from "work" to "msf_sc" (inclusive)
+# pca.data <- cormat.data %>% 
+#   select(-msf_sc_num, -PDS_score_m, -PDS_score_f)
 
-cols_to_remove <- c("record_id", "slypos_demographics_age",
-                    "slypos_demographics_sex.factor", 
-                    "slypos_demographics_gender.factor",
-                    "slypos_demographics_work_or_school.factor",
-                    "slypos_demographics_school.factor",
-                    "slypos_demographics_language.factor",
-                    "slypos_demographics_tz.factor",
-                    "fill_date","ASE_levels",
-                    "work", "wd", "alarm_f", "le_w", "le_f", "fd", "so_w", 
-                    "so_f", "gu_w", "gu_f", "sd_w", "sd_f", "tbt_w", "tbt_f", 
-                    "msw", "msf", "sd_week", "le_week", "msf_sc")
-
-# Remove all columns from "work" to "msf_sc" (inclusive)
-cormat.data <- analysis.data %>% 
-  select(-cols_to_remove)
-
-# Remove all columns from "work" to "msf_sc" (inclusive)
-pca.data <- cormat.data %>% 
-  select(-msf_sc_num, -PDS_score_m, -PDS_score_f)
 
 # Models Confirmatory hypotheses ----------------------------------------------
 
@@ -99,8 +98,6 @@ model_chrono_fac5 <-  lm(msf_sc_num ~ F5_leba +
                           data = analysis.data)
 
 summary(model_chrono_fac5)
-
-# Models for Chronotype (msf_sc_num)
 
 # Model with F3_leba as predictor (ß expected positive)
 model_chrono_fac3 <- lm(msf_sc_num ~ F3_leba + 
@@ -194,18 +191,26 @@ summary(model_sleepimp_fac4)
 
 ### ---- Chronotype (msf_sc_num) ----
 
+# we need a "clean" (i.e., no missing or infinite values) dataset for predictor and dependent variables,
+MSF_clean <- analysis.data %>% 
+  drop_na(msf_sc_num,
+          slypos_demographics_age, 
+          slypos_demographics_sex.factor, 
+          slypos_demographics_school.factor,
+          F2_leba, F3_leba, F4_leba, F5_leba)
+
 # Define the common null model (without the Leba factor)
 
 bf_chrono_null <- lmBF(msf_sc_num ~ slypos_demographics_age + 
                          slypos_demographics_sex.factor + 
                          slypos_demographics_school.factor, 
-                       data = analysis.data_MSF)
+                       data = MSF_clean)
 
 # Bayes Factor for the model including F2_leba
 bf_chrono_fac2 <- lmBF(msf_sc_num ~ F2_leba + slypos_demographics_age + 
                          slypos_demographics_sex.factor + 
                          slypos_demographics_school.factor, 
-                       data = analysis.data_MSF)
+                       data = MSF_clean)
 
 
 BF_chrono_fac2 <- bf_chrono_fac2 / bf_chrono_null
@@ -215,40 +220,49 @@ print(BF_chrono_fac2)
 bf_chrono_fac5 <- lmBF(msf_sc_num ~ F5_leba + slypos_demographics_age + 
                          slypos_demographics_sex.factor + 
                          slypos_demographics_school.factor, 
-                       data = analysis.data_MSF)
+                       data = MSF_clean)
 BF_chrono_fac5 <- bf_chrono_fac5 / bf_chrono_null
-print(BF_chrono_fac5)
+BF_chrono_fac5
 
 # Bayes Factor for the model including F3_leba
 bf_chrono_fac3 <- lmBF(msf_sc_num ~ F3_leba + slypos_demographics_age + 
                          slypos_demographics_sex.factor + 
                          slypos_demographics_school.factor, 
-                       data = analysis.data_MSF)
+                       data = MSF_clean)
 BF_chrono_fac3 <- bf_chrono_fac3 / bf_chrono_null
-print(BF_chrono_fac3)
+BF_chrono_fac3
 
 # Bayes Factor for the model including F4_leba
 bf_chrono_fac4 <- lmBF(msf_sc_num ~ F4_leba + slypos_demographics_age + 
                          slypos_demographics_sex.factor + 
                          slypos_demographics_school.factor, 
-                       data = analysis.data_MSF)
+                       data = MSF_clean)
 BF_chrono_fac4 <- bf_chrono_fac4 / bf_chrono_null
-print(BF_chrono_fac4)
+BF_chrono_fac4
 
 
 ### ---- Sleep Disturbances (Promis_sd_sum) ----
+
+# clean dataset for predictor and dependent variables
+PROMIS_clean <- analysis.data %>% 
+  drop_na(Promis_sd_sum,
+          Promis_sri_sum,
+          slypos_demographics_age, 
+          slypos_demographics_sex.factor, 
+          slypos_demographics_school.factor,
+          F2_leba, F3_leba, F4_leba, F5_leba)
 
 # Common null model for PROMIS sleep quality
 bf_sleepdis_null <- lmBF(Promis_sd_sum ~ slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 
 # Model with F2_leba
 bf_sleepdis_fac2 <- lmBF(Promis_sd_sum ~ F2_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepdis_fac2 <- bf_sleepdis_fac2 / bf_sleepdis_null
 print(BF_sleepdis_fac2)
 
@@ -256,7 +270,7 @@ print(BF_sleepdis_fac2)
 bf_sleepdis_fac5 <- lmBF(Promis_sd_sum ~ F5_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepdis_fac5 <- bf_sleepdis_fac5 / bf_sleepdis_null
 print(BF_sleepdis_fac5)
 
@@ -264,7 +278,7 @@ print(BF_sleepdis_fac5)
 bf_sleepdis_fac3 <- lmBF(Promis_sd_sum ~ F3_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepdis_fac3 <- bf_sleepdis_fac3 / bf_sleepdis_null
 print(BF_sleepdis_fac3)
 
@@ -272,7 +286,7 @@ print(BF_sleepdis_fac3)
 bf_sleepdis_fac4 <- lmBF(Promis_sd_sum ~ F4_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepdis_fac4 <- bf_sleepdis_fac4 / bf_sleepdis_null
 print(BF_sleepdis_fac4)
 
@@ -283,13 +297,13 @@ print(BF_sleepdis_fac4)
 bf_sleepimp_null <- lmBF(Promis_sri_sum ~ slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 
 # Model with F2_leba
 bf_sleepimp_fac2 <- lmBF(Promis_sri_sum ~ F2_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepimp_fac2 <- bf_sleepimp_fac2 / bf_sleepimp_null
 print(BF_sleepimp_fac2)
 
@@ -297,7 +311,7 @@ print(BF_sleepimp_fac2)
 bf_sleepimp_fac5 <- lmBF(Promis_sri_sum ~ F5_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepimp_fac5 <- bf_sleepimp_fac5 / bf_sleepimp_null
 print(BF_sleepimp_fac5)
 
@@ -305,7 +319,7 @@ print(BF_sleepimp_fac5)
 bf_sleepimp_fac3 <- lmBF(Promis_sri_sum ~ F3_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepimp_fac3 <- bf_sleepimp_fac3 / bf_sleepimp_null
 print(BF_sleepimp_fac3)
 
@@ -313,7 +327,7 @@ print(BF_sleepimp_fac3)
 bf_sleepimp_fac4 <- lmBF(Promis_sri_sum ~ F4_leba + slypos_demographics_age + 
                            slypos_demographics_sex.factor + 
                            slypos_demographics_school.factor, 
-                         data = analysis.data)
+                         data = PROMIS_clean)
 BF_sleepimp_fac4 <- bf_sleepimp_fac4 / bf_sleepimp_null
 print(BF_sleepimp_fac4)
 

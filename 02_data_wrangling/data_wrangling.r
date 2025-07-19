@@ -20,16 +20,16 @@ load(file="./02_data_wrangling/data.rda")
 
 #define functions:
 
-convert_to_decimal_hours <- function(time_string) {
-  # Split the string into hours and minutes
-  time_parts <- strsplit(time_string, ":")[[1]]
-  hours <- as.numeric(time_parts[1])
-  minutes <- as.numeric(time_parts[2])
-  
-  # Convert to decimal hours
-  decimal_hours <- hours + (minutes / 60)
-  return(decimal_hours)
-}
+# convert_to_decimal_hours <- function(time_string) {
+#   # Split the string into hours and minutes
+#   time_parts <- strsplit(time_string, ":")[[1]]
+#   hours <- as.numeric(time_parts[1])
+#   minutes <- as.numeric(time_parts[2])
+#   
+#   # Convert to decimal hours
+#   decimal_hours <- hours + (minutes / 60)
+#   return(decimal_hours)
+# }
 
 # compute sum scores for questionnaires--------------------------------------
 
@@ -238,7 +238,7 @@ mctq_checks <- data %>%
   filter(regular) %>% 
   select(-regular) # drop helper column 
 
-# STEP 2: fix bed- / sleep times (items 3 / 4)
+# STEP 2: fix bed- / sleep times 
 mctq_checks <- mctq_checks %>%
   mutate(across(
     c(slypos_mctq_03, slypos_mctq_04,
@@ -346,7 +346,7 @@ mctq_tagged <- mctq_checks %>%
     diff = bed - sleep,
     status = case_when(
       !inverted ~ "ok", 
-      inverted & diff <= hours(1) ~ "corrected", 
+      inverted & diff <= hours(1) ~ "corrected", # we could also set hours to 2 to account for a 2h difference in bed vs. sleep time?
       inverted & diff > hours(1) ~ "flag"
     ), 
     inverted_free = (bed_free > sleep_free),
@@ -544,6 +544,30 @@ light_expo <- data %>% select(
   select(record_id, le_week)
 
 data <- data %>% left_join(light_expo, by = "record_id")
+
+
+# Why are we losing so many cases in calculating MSF and MSF sc?
+## --> We filter for status and select only ok and corrected, NA rows are dropped. 
+## From the entire survey dataset of N = 774, 
+## we only obtained valid MCTQ data from N = 551 participants. 
+
+irregulars <- data %>%  filter(
+    (is.na(slypos_mctq_01)     | slypos_mctq_01     == 2),
+    (is.na(slypos_mctq_01_ped) | slypos_mctq_01_ped == 2)) 
+# we have 203 cases, in which participants do NOT have a regular work/school schedule
+
+# There is still 20 cases unaccounted for in the difference between data's length and msf's length
+msf_ids <- msf %>% pull(record_id)
+irregular_ids <- irregulars %>% pull(record_id)
+missing_ids <- data %>% filter(
+    !record_id %in% msf_ids,
+    !record_id %in% irregular_ids) %>% pull(record_id)
+
+# Look at the remaining 20 cases
+View(data %>% filter(record_id %in% missing_ids))
+
+
+
 
 
 
