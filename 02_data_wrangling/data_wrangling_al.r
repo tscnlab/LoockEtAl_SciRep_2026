@@ -329,6 +329,29 @@ mctq_cleaned <- data %>%
     bed_free_new, sleep_free_new
   )
 
+# quick sanity checks to ensure everything worked
+nrow(mctq_cleaned); nrow(data) #sample size
+mctq_cleaned %>% summarise(
+  flagged_work = sum(status == "flag", na.rm = TRUE), #dropped in work day times
+  flagged_free = sum(status_free == "flag", na.rm = TRUE) #dropped in free day times
+)
+
+weird_midday <- mctq_cleaned %>%
+  filter(
+    # work-day bed or sleep in [13:00,16:00)
+    (bed_new       >= hms(hours = 13) & bed_new       < hms(hours = 16))
+    | (sleep_new     >= hms(hours = 13) & sleep_new     < hms(hours = 16))
+    # free-day bed or sleep in [13:00,16:00)
+    | (bed_free_new  >= hms(hours = 13) & bed_free_new  < hms(hours = 16))
+    | (sleep_free_new>= hms(hours = 13) & sleep_free_new< hms(hours = 16))
+  ) %>%
+  select(
+    record_id, group, regular, 
+    status, status_free, 
+    bed_new, sleep_new, bed_free_new, sleep_free_new
+  )
+weird_midday
+
 # merge back onto `data` by record_id:
 data <- data %>%
   left_join(
@@ -341,16 +364,16 @@ data <- data %>%
 msf <- data %>%
   # Select columns needed for MSFsc (keeping record_id, group, status)
   select(
-    record_id, status, status_free, group,
+    record_id, status, status_free, group, regular,
+    bt_w           = bed_new,     # bedtime on work days
+    sprep_w        = sleep_new,     # sleep time on work days
     wd             = slypos_mctq_02,         # work days
-    bt_w           = slypos_mctq_03_new,     # bedtime on work days
-    sprep_w        = slypos_mctq_04_new,     # sleep time on work days
     slat_w         = slypos_mctq_05,         # sleep onset latency on work days
     se_w           = slypos_mctq_06,         # sleep end on work days
     si_w           = slypos_mctq_07,         # sleep inertia on work days
     # free-day equivalents:
-    bt_f           = slypos_mctq_10_new,
-    sprep_f        = slypos_mctq_11_new,     # sleep time  
+    bt_f           = bed_free_new,
+    sprep_f        = sleep_free_new,     # sleep time  
     slat_f         = slypos_mctq_12,         # sleep onset latency
     se_f           = slypos_mctq_13,         # sleep end
     si_f           = slypos_mctq_14,         # sleep inertia
@@ -358,14 +381,10 @@ msf <- data %>%
     
     # and for pediatric sample: 
     wd_ped             = slypos_mctq_02_ped,         
-    bt_w_ped           = slypos_mctq_03_ped_new,     
-    sprep_w_ped        = slypos_mctq_04_ped_new,     
     slat_w_ped         = slypos_mctq_05_ped,         
     se_w_ped           = slypos_mctq_06_ped,         
     si_w_ped           = slypos_mctq_07_ped,         
     # free-day equivalents:
-    bt_f_ped           = slypos_mctq_10_ped_new,
-    sprep_f_ped        = slypos_mctq_11_ped_new,       
     slat_f_ped         = slypos_mctq_12_ped,         
     se_f_ped           = slypos_mctq_13_ped,         
     si_f_ped           = slypos_mctq_14_ped,         
@@ -376,15 +395,16 @@ msf <- data %>%
     as.numeric
   )) %>%
   # Drop any flagged rows
-  filter(status != "flag", status_free != "flag") %>%
+  # filter(status != "flag", status_free != "flag") %>%
+  
   # Parse to hms / durations
   mutate(
     # pick adult vs child answers
     wd      = if_else(group=="Adult", as.integer(wd), as.integer(wd_ped)), 
-    bt_w    = if_else(group=="Adult", hms::parse_hm(as.character(bt_w)), hms::parse_hm(as.character(bt_w_ped))),
-    sprep_w = if_else(group=="Adult", hms::parse_hm(as.character(sprep_w)), hms::parse_hm(as.character(sprep_w_ped))),
-    bt_f    = if_else(group=="Adult", hms::parse_hm(as.character(bt_f)), hms::parse_hm(as.character(bt_f_ped))),
-    sprep_f = if_else(group=="Adult", hms::parse_hm(as.character(sprep_f)), hms::parse_hm(as.character(sprep_f_ped))),
+    #bt_w    = hms :: parse_hm(as.character(bt_w)),
+    #sprep_w = hms::parse_hm(as.character(sprep_w)),
+    #bt_f    = hms :: parse_hm(as.character(bt_f)),
+    #sprep_f = hms::parse_hm(as.character(sprep_f)),
     alarm_f = if_else(group=="Adult", as.logical(alarm_f == "1"), as.logical(alarm_f_ped == "1")),
     slat_w  = if_else(group=="Adult", slat_w, slat_w_ped),
     se_w    = if_else(group=="Adult", se_w, se_w_ped),
@@ -400,8 +420,11 @@ msf <- data %>%
     se_w   = hms::parse_hm(as.character(se_w)), # sleep end
     se_f   = hms::parse_hm(as.character(se_f)),
     si_w   = dminutes(as.numeric(si_w)), # sleep inertia
-    si_f   = dminutes(as.numeric(si_f))
-  ) %>%
+    si_f   = dminutes(as.numeric(si_f))) %>%
+  # When status is FLAG -> set to NA (work days and free days)
+  mutate(
+    across(c(bt_w, sprep_w), ~ if_else(status == "flag", as_hms(NA_real_), .)),
+    across(c(bt_f, sprep_f), ~ if_else(status_free == "flag", as_hms(NA_real_), .))) %>%
   # Compute the MCTQ intermediates & msf_sc in one go
   mutate(
     so_w    = so(sprep_w, slat_w), # sleep onset
@@ -415,7 +438,7 @@ msf <- data %>%
 
 data <- data %>%
   left_join(
-    msf %>% select(record_id, msf, msf_sc), # only MSFsc selected for now
+    msf %>% select(record_id, msf, msf_sc), 
     by = "record_id"
   )
 
@@ -436,7 +459,6 @@ light_expo <- data %>% select(
     ~ na_if(as.character(.x), "")
   )) %>%
   # Select corresponding variables
-  filter(!is.na(group)) %>%
   mutate(
     wd   = if_else(group=="Adult", as.integer(wd), as.integer(wd_ped)),
     le_w = if_else(group=="Adult",
@@ -455,25 +477,28 @@ light_expo <- data %>% select(
 data <- data %>% left_join(light_expo, by = "record_id")
 
 
+
+
+# TROUBLESHOOTING (complete - Aug 06, 25)
 # Why are we losing so many cases in calculating MSF and MSF sc?
 ## --> We filter for status and select only ok and corrected, NA rows are dropped. 
 ## From the entire survey dataset of N = 774, 
 ## we only obtained valid MCTQ data from N = 551 participants. 
 
-irregulars <- data %>%  filter(
-    (is.na(slypos_mctq_01)     | slypos_mctq_01     == 2),
-    (is.na(slypos_mctq_01_ped) | slypos_mctq_01_ped == 2)) 
-# we have 203 cases, in which participants do NOT have a regular work/school schedule
-
-# There is still 20 cases unaccounted for in the difference between data's length and msf's length
-msf_ids <- msf %>% pull(record_id)
-irregular_ids <- irregulars %>% pull(record_id)
-missing_ids <- data %>% filter(
-    !record_id %in% msf_ids,
-    !record_id %in% irregular_ids) %>% pull(record_id)
-
-# Look at the remaining 20 cases
-View(data %>% filter(record_id %in% missing_ids))
+# irregulars <- data %>%  filter(
+#     (is.na(slypos_mctq_01)     | slypos_mctq_01     == 2),
+#     (is.na(slypos_mctq_01_ped) | slypos_mctq_01_ped == 2)) 
+# # we have 203 cases, in which participants do NOT have a regular work/school schedule
+# 
+# # There is still 20 cases unaccounted for in the difference between data's length and msf's length
+# msf_ids <- msf %>% pull(record_id)
+# irregular_ids <- irregulars %>% pull(record_id)
+# missing_ids <- data %>% filter(
+#     !record_id %in% msf_ids,
+#     !record_id %in% irregular_ids) %>% pull(record_id)
+# 
+# # Look at the remaining 20 cases
+# View(data %>% filter(record_id %in% missing_ids))
 
 
 
@@ -682,7 +707,7 @@ data <- data %>% mutate(
   
   # select only the data needed for analysis
   
-  analysis.data <- data %>% dplyr::select(c(record_id, group, 
+  analysis.data <- data %>% dplyr::select(c(record_id, group, regular, status, status_free,
                                             all_of(demvars), 
                                             slypos_demographics_tz.factor, 
                                             fill_date, 
