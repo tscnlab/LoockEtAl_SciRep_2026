@@ -50,8 +50,11 @@ demvars.data %>%
 # %>%   #modify_caption("Demographic Characteristics of Participants") 
 
 
+
 dem_table
 
+min(demvars.data$slypos_demographics_age)
+max(demvars.data$slypos_demographics_age)
 
 # Country/time zone data----------------------------------------------
 
@@ -69,8 +72,22 @@ country_tz.data%>%
   )  %>% bold_labels() %>%
   modify_header(label ~ "") -> tz_table
   #as_tibble(format='pipe') 
-
-
 tz_table
+
+# Demographics of timezones and countries
+library(data.table)
+tz <- setDT(country_tz.data)
+tz_n <- tz[ , uniqueN(slypos_demographics_tz)] # n of timezones
+tz_count <- tz[ , .N, by = slypos_demographics_tz][order(-N)] 
+cty_n <- tz[ , uniqueN(slypos_demographics_tz.factor)] # n of countries
+cty_count <- tz[ , .N, by = slypos_demographics_tz.factor][order(-N)] 
+
+# for percentages
+tz_count[ , pct := N/sum(N)]
+cty_count[ , pct := N/sum(N)]
+
+
+
+
 
 

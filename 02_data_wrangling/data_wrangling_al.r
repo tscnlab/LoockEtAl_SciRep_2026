@@ -500,6 +500,12 @@ data <- data %>% left_join(light_expo, by = "record_id")
 # # Look at the remaining 20 cases
 # View(data %>% filter(record_id %in% missing_ids))
 
+# Take out "alarm_f" bc/ we are loosing too much data otherwise. 
+# So, instead of using the implemented function to calculate MSFsc, 
+# I do the calculation manually with the formula provided in the publication:
+# https://www.researchgate.net/publication/340541904_Chronotype_and_Social_Jetlag_-_a_self-critical_review
+
+
 
 
 
