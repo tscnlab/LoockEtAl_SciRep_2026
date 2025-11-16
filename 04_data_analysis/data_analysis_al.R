@@ -291,6 +291,185 @@ estimatesBF_sleepimp_f4 <- posterior(BF_sleepimp_fac4, iterations = 10000)
 summary(estimatesBF_sleepimp_f4)
 
 
+# Extract for reporting ---------------------------------------------------------
+
+## Helper function to extract results from confirmatory results ------------
+extract_from_existing <- function(outcome,
+                                  predictor,      # e.g. "F2_leba"
+                                  bf_object,      # e.g. BF_msf_f2  (BFBayesFactor)
+                                  post_object) {  # e.g. estimatesBF_msf2 (mcmc object)
+  
+  summ <- summary(post_object)
+  
+  # Get numeric BF10; extractBF() returns a length-1 numeric vector for length-1 BFBayesFactor
+  BF10 <- as.numeric(BayesFactor::extractBF(bf_object, onlybf = TRUE))
+  
+  # Capture textual interpretation from your BFA_interpret() helper
+  evidence_label <- paste(capture.output(BFA_interpret(bf_object)), collapse = " ")
+  
+  # Find the row corresponding to the predictor in the posterior summary
+  # (BayesFactor names it e.g. "F2_leba-F2_leba")
+  pred_row <- grep(predictor, rownames(summ$statistics), value = TRUE)[1]
+  
+  beta_mean <- summ$statistics[pred_row, "Mean"]
+  beta_sd   <- summ$statistics[pred_row, "SD"]
+  ci_lower  <- summ$quantiles[pred_row, "2.5%"]
+  ci_upper  <- summ$quantiles[pred_row, "97.5%"]
+  
+  # Basic direction classification
+  direction <- ifelse(beta_mean > 0, "positive",
+                      ifelse(beta_mean < 0, "negative", "zero"))
+  ci_includes_zero <- (ci_lower < 0 & ci_upper > 0)
+  
+  data.frame(
+    outcome          = outcome,
+    predictor        = predictor,
+    BF10             = BF10,
+    evidence_label   = evidence_label,
+    beta_mean        = beta_mean,
+    beta_sd          = beta_sd,
+    ci_lower         = ci_lower,
+    ci_upper         = ci_upper,
+    direction        = direction,
+    ci_includes_zero = ci_includes_zero,
+    stringsAsFactors = FALSE
+  )
+}
+
+all_results <- bind_rows(
+  
+  # ---- MSF (msf_num) ----
+  extract_from_existing("msf_num",       "F2_leba", BF_msf_f2,        estimatesBF_msf2),
+  extract_from_existing("msf_num",       "F5_leba", BF_msf_f5,        estimatesBF_msf5),
+  extract_from_existing("msf_num",       "F3_leba", BF_msf_f3,        estimatesBF_msf3),
+  extract_from_existing("msf_num",       "F4_leba", BF_msf_f4,        estimatesBF_msf4),
+  
+  # ---- MSFsc (msf_sc_num) ----
+  extract_from_existing("msf_sc_num",    "F2_leba", BF_msfsc_f2,      estimatesBF_msfsc2),
+  extract_from_existing("msf_sc_num",    "F5_leba", BF_msfsc_f5,      estimatesBF_msfsc5),
+  extract_from_existing("msf_sc_num",    "F3_leba", BF_msfsc_f3,      estimatesBF_msfsc3),
+  extract_from_existing("msf_sc_num",    "F4_leba", BF_msfsc_f4,      estimatesBF_msfsc4),
+  
+  # ---- Sleep Disturbances (PROMIS_sd_sum) ----
+  extract_from_existing("Promis_sd_sum", "F2_leba", BF_sleepdis_fac2, estimatesBF_SD_2),
+  extract_from_existing("Promis_sd_sum", "F5_leba", BF_sleepdis_fac5, estimatesBF_SD_5),
+  extract_from_existing("Promis_sd_sum", "F3_leba", BF_sleepdis_fac3, estimatesBF_SD_3),
+  extract_from_existing("Promis_sd_sum", "F4_leba", BF_sleepdis_fac4, estimatesBF_SD_4),
+  
+  # ---- Sleep-Related Impairment (PROMIS_sri_sum) ----
+  extract_from_existing("Promis_sri_sum","F2_leba", BF_sleepimp_fac2, estimatesBF_sleepimp_f2),
+  extract_from_existing("Promis_sri_sum","F5_leba", BF_sleepimp_fac5, estimatesBF_sleepimp_f5),
+  extract_from_existing("Promis_sri_sum","F3_leba", BF_sleepimp_fac3, estimatesBF_sleepimp_f3),
+  extract_from_existing("Promis_sri_sum","F4_leba", BF_sleepimp_fac4, estimatesBF_sleepimp_f4)
+)
+
+#write.csv(all_results, "BF_confirmatory_results.csv", row.names = FALSE)
+
+
+
+# Extract covariate information -------------------------------------------
+extract_covariates_from_existing <- function(outcome,
+                                             predictor,      # e.g. "F2_leba"
+                                             posterior) {    # e.g. estimatesBF_msf2
+  
+  summ <- summary(posterior)
+  rows <- rownames(summ$statistics)
+  
+  # Keep *only* the covariate rows (age, sex, work env)
+  cov_rows <- rows[grepl("^slypos_demographics", rows)]
+  
+  # Build one row per covariate
+  cov_list <- lapply(cov_rows, function(r) {
+    beta_mean <- summ$statistics[r, "Mean"]
+    beta_sd   <- summ$statistics[r, "SD"]
+    ci_lower  <- summ$quantiles[r, "2.5%"]
+    ci_upper  <- summ$quantiles[r, "97.5%"]
+    
+    direction <- ifelse(beta_mean > 0, "positive",
+                        ifelse(beta_mean < 0, "negative", "zero"))
+    ci_includes_zero <- (ci_lower < 0 & ci_upper > 0)
+    
+    # nicer covariate label: everything after the last "-"
+    cov_label <- sub(".*-", "", r)
+    
+    data.frame(
+      outcome          = outcome,
+      predictor        = predictor,
+      covariate        = cov_label,
+      beta_mean        = beta_mean,
+      beta_sd          = beta_sd,
+      ci_lower         = ci_lower,
+      ci_upper         = ci_upper,
+      direction        = direction,
+      ci_includes_zero = ci_includes_zero,
+      stringsAsFactors = FALSE
+    )
+  })
+  
+  dplyr::bind_rows(cov_list)
+}
+
+covariate_results <- dplyr::bind_rows(
+  # ---- MSF (msf_num) ----
+  extract_covariates_from_existing("msf_num", "F2_leba", estimatesBF_msf2),
+  extract_covariates_from_existing("msf_num", "F5_leba", estimatesBF_msf5),
+  extract_covariates_from_existing("msf_num", "F3_leba", estimatesBF_msf3),
+  extract_covariates_from_existing("msf_num", "F4_leba", estimatesBF_msf4),
+  
+  # ---- MSFsc (msf_sc_num) ----
+  extract_covariates_from_existing("msf_sc_num", "F2_leba", estimatesBF_msfsc2),
+  extract_covariates_from_existing("msf_sc_num", "F5_leba", estimatesBF_msfsc5),
+  extract_covariates_from_existing("msf_sc_num", "F3_leba", estimatesBF_msfsc3),
+  extract_covariates_from_existing("msf_sc_num", "F4_leba", estimatesBF_msfsc4),
+  
+  # ---- Sleep Disturbances (PROMIS_sd_sum) ----
+  extract_covariates_from_existing("Promis_sd_sum", "F2_leba", estimatesBF_SD_2),
+  extract_covariates_from_existing("Promis_sd_sum", "F5_leba", estimatesBF_SD_5),
+  extract_covariates_from_existing("Promis_sd_sum", "F3_leba", estimatesBF_SD_3),
+  extract_covariates_from_existing("Promis_sd_sum", "F4_leba", estimatesBF_SD_4),
+  
+  # ---- Sleep-Related Impairment (PROMIS_sri_sum) ----
+  extract_covariates_from_existing("Promis_sri_sum", "F2_leba", estimatesBF_sleepimp_f2),
+  extract_covariates_from_existing("Promis_sri_sum", "F5_leba", estimatesBF_sleepimp_f5),
+  extract_covariates_from_existing("Promis_sri_sum", "F3_leba", estimatesBF_sleepimp_f3),
+  extract_covariates_from_existing("Promis_sri_sum", "F4_leba", estimatesBF_sleepimp_f4)
+)
+
+# Optional: write to CSV
+# write.csv(covariate_results, "BF_covariate_results.csv", row.names = FALSE)
+
+
+## Create table ------------------------------------------------------------
+# library(knitr)
+# 
+# apa_table <- all_results %>%
+#   mutate(
+#     Outcome   = outcome,
+#     Predictor = predictor,
+#     BF10_fmt  = sprintf("%.2f", BF10),
+#     beta_fmt  = sprintf("%.3f", beta_mean),
+#     CI_fmt    = sprintf("[%.3f, %.3f]", ci_lower, ci_upper)
+#   ) %>%
+#   select(
+#     Outcome,
+#     Predictor,
+#     BF10      = BF10_fmt,
+#     beta      = beta_fmt,
+#     `95% CI`  = CI_fmt,
+#     Direction = direction,
+#     Evidence  = evidence_label
+#   )
+
+# # View nicely in RStudio / R Markdown
+# kable(
+#   apa_table,
+#   booktabs = TRUE,
+#   caption = "Bayesian regression results for associations between LEBA factors and sleep outcomes."
+# )
+
+# Optional: save APA-style table to CSV for Word
+# write.csv(apa_table, "BF_confirmatory_APA_table.csv", row.names = FALSE)
+
 
 # Exploratory analysis----------------------------------------------------------
 
