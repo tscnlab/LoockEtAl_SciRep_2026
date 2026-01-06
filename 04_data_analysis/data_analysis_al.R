@@ -364,7 +364,7 @@ all_results <- bind_rows(
 )
 
 #write.csv(all_results, "BF_confirmatory_results.csv", row.names = FALSE)
-
+#save(all_results, file="./04_data_analysis/results.rda")
 
 
 # Extract covariate information -------------------------------------------
@@ -494,6 +494,7 @@ cor_matrix
 
 cor <- corr.test(cor_data, use = "pairwise", method = "spearman", adjust= "fdr")
 
+# Basic
 ggcorrplot(cor$r, 
            p.mat = cor$p,
            sig.level = 0.05,
@@ -501,6 +502,19 @@ ggcorrplot(cor$r,
            lab = TRUE, 
            lab_size = 2.5, 
            hc.order = FALSE)
+
+# Non sig correlations blank
+ggcorrplot(
+  cor$r,
+  type = "upper",
+  p.mat = cor$p,
+  sig.level = 0.05,
+  insig = "blank",
+  lab = TRUE
+  #hc.order = TRUE
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 ## Pca--------------------------------------------------------------------------
@@ -538,7 +552,6 @@ pca_result_nolight <- prcomp(pca_nolight, center = TRUE, scale. = TRUE)
 summary(pca_result_nolight)
 
 
-
 # PCA plots
 
 # Plot a scree plot to visualize variance explained by each PC
@@ -565,3 +578,99 @@ factoextra::fviz_pca_var(pca_result,
                          repel = TRUE,         # Avoid label overlap
                          title = "PCA Variable Correlation Circle")
 
+
+
+# PCA_version 2_for-submission --------------------------------------------
+# --- PCA with le_week (smaller N) ----
+
+# Select variables for PCA
+vars <- c("F1_leba","F2_leba","F3_leba","F4_leba","F5_leba",
+          "msf_num","le_week_num",
+          "Photophila_score","Photophobia_score",
+          "ASE_score","Promis_sd_sum","Promis_sri_sum")
+
+pca_selected <- analysis.data %>% dplyr::select(all_of(vars)) %>%
+  # remove "labelled" attributes but keep numeric values
+  dplyr::mutate(across(everything(), ~ as.numeric(.)))
+
+# Check missingness (bc/ that's an issue w/ pca)
+colSums(is.na(pca_selected))
+
+# Select only complete cases
+pca_cc <- pca_selected %>% tidyr::drop_na()
+nrow(pca_cc)
+
+# Spearman correlation matrix
+p_mat <- cor(pca_selected, use = "pairwise.complete.obs", method = "spearman")
+
+# KMO
+kmo <- psych::KMO(p_mat)
+kmo
+
+# Bartlett (for pairwise cor this is approximate, but acceptable for a check)
+bart <- psych::cortest.bartlett(p_mat, n = nrow(pca_cc))
+bart
+
+# Parallel analysis
+set.seed(123)
+
+pa <- psych::fa.parallel(
+  p_mat,
+  n.obs = nrow(pca_cc),
+  fm = "pc",        # principal components
+  fa = "pc",
+  n.iter = 100,
+  error.bars = FALSE,
+  main = "Parallel analysis (Spearman correlations)"
+)
+
+# MAP
+vss <- psych::VSS(p_mat, n.obs = nrow(pca_cc), rotate = "none", fm = "pc", plot = FALSE)
+vss
+
+# Fit rotated solution and extract loadings
+k <- 3  # <- update after inspection of PA + MAP
+
+# PCA
+pc_rot <- psych::principal(
+  p_mat,
+  nfactors = k,
+  rotate = "oblimin",
+  scores = FALSE)
+pc_rot
+
+# Loadings table with cutoff
+print(pc_rot$loadings, cutoff = 0.30, digits = 2)
+
+# Alternative (but less fitting): EFA
+# fa_rot <- psych::fa(p_mat, nfactors = k, rotate = "oblimin", fm = "minres")   # robust default for EFA
+# fa_rot
+# print(fa_rot$loadings, cutoff = 0.30, digits = 2)
+
+
+# --- PCA w/o le_week (larger N) ----
+vars2 <- c("F1_leba","F2_leba","F3_leba","F4_leba","F5_leba",
+           "msf_num",
+           "Photophila_score","Photophobia_score",
+           "ASE_score","Promis_sd_sum","Promis_sri_sum")
+
+pca_selected2 <- analysis.data %>%
+  dplyr::select(all_of(vars2)) %>%
+  dplyr::mutate(across(everything(), ~ as.numeric(.)))
+
+pca_cc2 <- pca_selected2 %>% tidyr::drop_na()
+p_mat2 <- cor(pca_selected2, use = "pairwise.complete.obs", method = "spearman")
+
+psych::KMO(p_mat2)
+psych::cortest.bartlett(p_mat2, n = nrow(pca_cc2))
+
+set.seed(123)
+psych::fa.parallel(p_mat2, n.obs = nrow(pca_cc2), fm = "pc", fa = "pc", n.iter = 100,
+                   error.bars = FALSE, main = "Parallel analysis (no weekly LE)")
+
+psych::VSS(p_mat2, n.obs = nrow(pca_cc2), rotate = "none", fm = "pc", plot = FALSE)
+
+k2 <- 2  # update based on outputs
+pc_rot2 <- psych::principal(p_mat2, nfactors = k2, rotate = "oblimin", scores = FALSE)
+print(pc_rot2$loadings, digits = 2)
+print(pc_rot2$loadings, cutoff = 0.40, digits = 2)
