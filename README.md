@@ -23,7 +23,7 @@ If scripts within a folder have a numeric prefix, execute them in that order.
 
 ---
 
-## 01_dataimport — Import
+## 01_dataimport
 
 `01_dataimport/dataimport.R`  
 **What it does:**
@@ -54,7 +54,7 @@ If scripts within a folder have a numeric prefix, execute them in that order.
 
 ---
 
-## 03_demographics — 
+## 03_demographics
 
 `01_dataimport/demographics.R`  
 
