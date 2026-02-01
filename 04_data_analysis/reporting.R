@@ -12,13 +12,20 @@ if(!require(pacman)) install.packages("pacman")
 #----- use pacman function p_load to check all packages that you are using in this script
 pacman::p_load(lme4, stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
                BayesFactor, effectsize, gtsummary, mctq, psych, ggcorrplot, gt, 
-               data.table)
+               data.table, 
+               flextable, officer, 
+               grid, ggpubr)
 
 
 # load data ----------------------------------------------------------------
 
 load(file="./04_data_analysis/analysis.data.rda")
+
+analysis.data <- analysis.data %>% mutate(msf_num = as.numeric(msf)/3600) # create numeric value for MSF
 colnames(analysis.data) # Get all column names
+
+analysis.data <- analysis.data %>%
+  mutate(across(where(haven::is.labelled), haven::zap_labels))
 
 
 # Calculate descriptive stats ---------------------------------------------
@@ -101,7 +108,7 @@ var_labels <- c(
 
 # --- 2) helper summaries ----
 summ_cont <- function(df, var, group) {
-  x <- df[[var]]
+  x <- as.numeric(haven::zap_labels(df[[var]]))
   tibble(
     group = group,
     variable = var_labels[[var]],
@@ -167,9 +174,6 @@ tab1_long <- bind_rows(
 tab1_long <- tab1_long %>%
   mutate(across(any_of(c("Mean","SD","Median","Min","Max")), ~ round(.x, 2)))
 
-library(flextable)
-library(officer)
-
 ft <- flextable(tab1_long) %>%
   set_header_labels(
     group = "",
@@ -186,7 +190,6 @@ ft <- flextable(tab1_long) %>%
   align(j = 3:ncol(tab1_long), align = "center", part = "all") %>%
   align(j = 1:2, align = "left", part = "all") %>%
   fontsize(size = 11, part = "all") %>%
-  font(fontname = "Times New Roman", part = "all") %>%
   colformat_num(j = c("Mean","SD","Median","Min","Max"), digits = 2, na_str = "")
 
 ft <- colformat_num(
@@ -198,7 +201,7 @@ doc <- read_docx() %>%
   body_add_flextable(ft)
 
 # Save
-print(doc, target = "Table1_descriptives.docx")
+print(doc, target = "./05_output/Table_descriptives.docx")
 
 # Categorical variables
 tab_cat <- analysis.data %>%
@@ -293,9 +296,6 @@ ggplot(coef_df,
 
 
 # Forest plots for manuscript ---------------------------------------------
-# libraries needed
-library(grid)
-library(ggpubr)
 
 # Create nicer forest plots for inclusion in manuscript
 # Select F2 and F3 (main results)
@@ -358,9 +358,9 @@ fig_main <- annotate_figure(fig_main,
   bottom = text_grob(expression("Posterior mean " * beta * " (95% credible interval)"),
                      size = 13, family = "Helvetica"))
 
-ggsave("Fig_forest_F2F3.png", fig_main, width = 12, height = 3, units = "in", dpi = 300, bg = "white")
+ggsave("./05_output/Fig_forest_F2F3.png", fig_main, width = 12, height = 3, units = "in", dpi = 300, bg = "white")
 # Save as vector graphic
-# ggsave("Fig1_forest_F2F3.svg", fig_main, width = 7, height = 4, units = "in", bg = "white")
+# ggsave("./05_output/Fig1_forest_F2F3.svg", fig_main, width = 7, height = 4, units = "in", bg = "white")
 
 
 
@@ -401,6 +401,16 @@ make_scatter_time <- function(df, x, y, x_lab, clock_breaks = 4) {
       axis.title = element_blank())}
 
 # MSF scatter plots
+# # Recreate MSF subset for scatter plots
+MSF <- analysis.data %>% 
+  tidyr::drop_na(
+    msf_num,
+    slypos_demographics_age,
+    slypos_demographics_sex.factor,
+    slypos_demographics_school.factor,
+    F2_leba, F3_leba, F4_leba, F5_leba
+  )
+
 # F2: Time spent outdoors
 scatter_f2_msf <- make_scatter_time(MSF, "F2_leba", "msf_num",
                          "Time spent outdoors [sum score]",
@@ -448,6 +458,17 @@ add_panel_tag <- function(p, tag) {
     theme(plot.margin = margin(8, 8, 8, 8))}
 
 # Scatter plots sleep disturbance
+# Recreate PROMIS analysis subset for scatter plots
+PROMIS_clean <- analysis.data %>%
+  tidyr::drop_na(
+    Promis_sd_sum,
+    Promis_sri_sum,
+    slypos_demographics_age,
+    slypos_demographics_sex.factor,
+    slypos_demographics_school.factor,
+    F2_leba, F3_leba, F4_leba, F5_leba
+  )
+
 scatter_f2_sd  <- make_scatter_promis(PROMIS_clean, "F2_leba", "Promis_sd_sum",
                          "Time spent outdoors\n[sum score]", "Sleep disturbances\n[sum score]")
 
@@ -485,12 +506,24 @@ fig_scatter <- ggpubr::annotate_figure(fig_scatter,
                                        left = row_labels)
 fig_scatter
 
-ggsave("Fig_scatter_all.png", fig_scatter, width = 12, height = 7, units = "in", dpi = 300, bg = "white")
+ggsave("./05_output/Fig_scatter_all.png", fig_scatter, width = 12, height = 7, units = "in", dpi = 300, bg = "white")
 
 
 
 
 # Correlation matrix ------------------------------------------------------
+# Recreate dataset for correlation analyses
+cor_data <- analysis.data %>%
+  select(
+    F1_leba, F2_leba, F3_leba, F4_leba, F5_leba,
+    msf_num, msf_sc_num,
+    le_week_num,
+    Photophila_score, Photophobia_score,
+    ASE_score,
+    Promis_sd_sum, Promis_sri_sum,
+    PDS_score_m, PDS_score_f
+  )
+
 cor_mat_data <- cor_data %>% mutate(PDS = coalesce(PDS_score_m, PDS_score_f))
 # trying to simply use one PDS score - as there is so very few anyways.
 
@@ -557,6 +590,6 @@ p <- p + scale_fill_gradient2(
       midpoint = 0,
       limits = c(-1, 1))
 
-ggsave("cor_matrix(2).png", p, width = 10, height = 6, units = "in", dpi = 300, bg = "white")
+ggsave("./05_output/cor_matrix.png", p, width = 10, height = 6, units = "in", dpi = 300, bg = "white")
 
 

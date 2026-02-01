@@ -17,19 +17,10 @@ pacman::p_load(stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
 # Read-in data ----------------------------------------------------------------
 
 #Read the whole dataset
-rawdata=read.csv('01_dataimport/raw_data/SpitschanSleepSurvey_DATA_2024-08-07_1229.csv')
+rawdata=read.csv('01_dataimport/raw_data/SpitschanSleepSurvey_DATA_2024-11-24_2125.csv')
 
 # filter out incomplete data
 complete_df <- rawdata %>% filter(!is.na(slypos_leba_50))
-
-
-# reduce dataset 
-
-# take sample of the full dataset
-#uncomment this later
-# set.seed(123)
-# complete_df <- complete_df %>% sample_n(50)
-
 
 # set data for analysis to sample data (30 obs.)
 data <- complete_df

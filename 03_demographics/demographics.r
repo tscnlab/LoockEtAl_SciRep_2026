@@ -1,6 +1,6 @@
 #Prepare Environment-----------------------------------------------
 # Code written for the Analysis of "Sleep And Light Exposure Behaviour"                                      
-# Code Authors: Rafael Lazar                                                                 
+# Code Authors: Rafael Lazar & Ann-Sophie Loock                                                                
 
 rm(list=ls())
 graphics.off()
