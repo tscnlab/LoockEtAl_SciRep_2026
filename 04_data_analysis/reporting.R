@@ -14,7 +14,8 @@ pacman::p_load(lme4, stringr, reshape2, Hmisc, tidyverse, doBy, DescTools,
                BayesFactor, effectsize, gtsummary, mctq, psych, ggcorrplot, gt, 
                data.table, 
                flextable, officer, 
-               grid, ggpubr)
+               grid, ggpubr, 
+               cowplot)
 
 
 # load data ----------------------------------------------------------------
@@ -365,8 +366,9 @@ ggsave("./05_output/Fig_forest_F2F3.png", fig_main, width = 12, height = 3, unit
 
 
 # Scatter plots (main results) --------------------------------------------
+# Setup functions --- 
 # Function to create MSF associations
-make_scatter_time <- function(df, x, y, x_lab, clock_breaks = 4) {
+make_scatter_time <- function(df, x, y, clock_breaks = 6) {
   df <- df %>% mutate(y_plot = .data[[y]] %% 24)
   
   ggplot(df, aes(x = .data[[x]], y = y_plot)) +
@@ -390,39 +392,20 @@ make_scatter_time <- function(df, x, y, x_lab, clock_breaks = 4) {
     scale_y_continuous(
       limits = c(0, 24),
       breaks = seq(0, 24, by = clock_breaks),
-      labels = function(x) sprintf("%02d:%02d", floor(x), round((x %% 1) * 60))) +
+      labels = \(x) sprintf("%02d:%02d", floor(x), round((x %% 1) * 60))) +
     labs(
-      x = x_lab,
-      y = "Mid-sleep on free days \n[hh:mm]") +
-    theme_classic(base_size = 13) +
+      x = NULL,
+      y = "Mid-sleep on\nfree days [hh:mm]") +
+    theme_classic(base_size = 14) +
     theme(
       text = element_text(family = "Helvetica"),
-      axis.text = element_text(colour = "grey10"),
-      axis.title = element_blank())}
-
-# MSF scatter plots
-# # Recreate MSF subset for scatter plots
-MSF <- analysis.data %>% 
-  tidyr::drop_na(
-    msf_num,
-    slypos_demographics_age,
-    slypos_demographics_sex.factor,
-    slypos_demographics_school.factor,
-    F2_leba, F3_leba, F4_leba, F5_leba
-  )
-
-# F2: Time spent outdoors
-scatter_f2_msf <- make_scatter_time(MSF, "F2_leba", "msf_num",
-                         "Time spent outdoors [sum score]",
-                         clock_breaks = 6)
-
-# F3: Device use in bed
-scatter_f3_msf <- make_scatter_time(MSF, "F3_leba", "msf_num",
-                               "Device use in bed [sum score]",
-                               clock_breaks = 6)
+      axis.text = element_text(colour = "grey10", size = 11),
+      axis.title.y = element_text(size = 11),
+      axis.title.x = element_blank())  
+  }
 
 # Function to create PROMIS sleep outcomes scatter plots
-make_scatter_promis <- function(df, x, y, x_lab, y_lab) {
+make_scatter_promis <- function(df, x, y, y_lab) {
   ggplot(df, aes(x = .data[[x]], y = .data[[y]])) +
     geom_point(
       position = position_jitter(width = 0.15, height = 0.15),
@@ -438,26 +421,24 @@ make_scatter_promis <- function(df, x, y, x_lab, y_lab) {
       linetype = "dashed",
       linewidth = 0.3,
       colour = "grey50") +
-    labs(x = x_lab, y = y_lab) +
-    theme_classic(base_size = 13) +
+    labs(x = NULL, y = y_lab) +
+    theme_classic(base_size = 14) +
     theme(text = element_text(family = "Helvetica"),
-          axis.text = element_text(colour = "grey10"),
-          axis.title = element_blank())}
+          axis.text = element_text(colour = "grey10", size = 11),
+          axis.title.y = element_text(size = 11),
+          axis.title.x = element_blank())
+  }
 
-# Create some themes for arranging plots together
-# manage tags
-add_panel_tag <- function(p, tag) {
-  p +  
-    labs(tag = NULL) + # remove existing tags for plots that exist alreadys
-    theme(plot.tag = element_blank()) +  
-    annotate("text",
-               x = -Inf, y = Inf, label = tag,
-               hjust = -0.18, vjust = 1.15,
-               size = 5, fontface = "bold", family = "Helvetica") +
-    coord_cartesian(clip = "off") +
-    theme(plot.margin = margin(8, 8, 8, 8))}
+# Generate plots --- 
+# # Recreate MSF subset for scatter plots
+MSF <- analysis.data %>% 
+  tidyr::drop_na(
+    msf_num,
+    slypos_demographics_age,
+    slypos_demographics_sex.factor,
+    slypos_demographics_school.factor,
+    F2_leba, F3_leba, F4_leba, F5_leba)
 
-# Scatter plots sleep disturbance
 # Recreate PROMIS analysis subset for scatter plots
 PROMIS_clean <- analysis.data %>%
   tidyr::drop_na(
@@ -466,49 +447,41 @@ PROMIS_clean <- analysis.data %>%
     slypos_demographics_age,
     slypos_demographics_sex.factor,
     slypos_demographics_school.factor,
-    F2_leba, F3_leba, F4_leba, F5_leba
-  )
+    F2_leba, F3_leba, F4_leba, F5_leba)
 
-scatter_f2_sd  <- make_scatter_promis(PROMIS_clean, "F2_leba", "Promis_sd_sum",
-                         "Time spent outdoors\n[sum score]", "Sleep disturbances\n[sum score]")
+# Build panels
+a  <- make_scatter_time(MSF, "F2_leba", "msf_num", 6)
+b  <- make_scatter_promis(PROMIS_clean, "F2_leba", "Promis_sd_sum",  "Sleep disturbance\n[sum score]")
+cc <- make_scatter_promis(PROMIS_clean, "F2_leba", "Promis_sri_sum", "Sleep-related impairment\n[sum score]")
+d  <- make_scatter_time(MSF, "F3_leba", "msf_num", 6)
+e  <- make_scatter_promis(PROMIS_clean, "F3_leba", "Promis_sd_sum",  "Sleep disturbance\n[sum score]")
+f  <- make_scatter_promis(PROMIS_clean, "F3_leba", "Promis_sri_sum", "Sleep-related impairment\n[sum score]")
 
-scatter_f3_sd  <- make_scatter_promis(PROMIS_clean, "F3_leba", "Promis_sd_sum",
-                         "Device use in bed\n[sum score]", "Sleep disturbances\n[sum score]") 
+# Column titles (outcome variable)
+col_titles <- plot_grid(
+  ggdraw() + draw_label("Sleep timing",             fontface = "bold", size = 14, fontfamily = "Helvetica"),
+  ggdraw() + draw_label("Sleep disturbance",        fontface = "bold", size = 14, fontfamily = "Helvetica"),
+  ggdraw() + draw_label("Sleep-related impairment", fontface = "bold", size = 14, fontfamily = "Helvetica"),
+  ncol = 3)
 
-# Scatter plots sleep-related impairment
-scatter_f2_sri <- make_scatter_promis(PROMIS_clean, "F2_leba", "Promis_sri_sum",
-                         "Time spent outdoors\n[sum score]", "Sleep-related impairment\n[sum score]") 
+# Row panels with tags
+row1_panels <- plot_grid(a, b, cc, ncol = 3, labels = c("A","B","C"), label_fontfamily = "Helvetica")
+row2_panels <- plot_grid(d, e, f, ncol = 3, labels = c("D","E","F"), label_fontfamily = "Helvetica")
 
-scatter_f3_sri <- make_scatter_promis(PROMIS_clean, "F3_leba", "Promis_sri_sum",
-                         "Device use in bed\n[sum score]", "Sleep-related impairment\n[sum score]") 
+# Per-row x-axis labels (predictor variable)
+row1_xlab <- ggdraw() + draw_label("Time spent outdoors [sum score]", size = 11, fontfamily = "Helvetica")
+row2_xlab <- ggdraw() + draw_label("Device use in bed [sum score]",   size = 11, fontfamily = "Helvetica")
 
-## Arrange scatter plots in one figure
-# Add tags
-a <- add_panel_tag(scatter_f2_msf, "A")
-b <- add_panel_tag(scatter_f2_sd, "B")
-c <- add_panel_tag(scatter_f2_sri, "C")
-d <- add_panel_tag(scatter_f3_msf, "D")
-e <- add_panel_tag(scatter_f3_sd, "E")
-f <- add_panel_tag(scatter_f3_sri, "F")
+# Assemble
+fig_scatter <- plot_grid(
+  col_titles,
+  row1_panels, row1_xlab,
+  row2_panels, row2_xlab,
+  ncol = 1,
+  rel_heights = c(0.07, 1, 0.07, 1, 0.07))
 
-fig_scatter <- ggarrange(a, b, c, d, e, f, ncol = 3, nrow = 2, align ="hv") 
-
-row_labels <- gridExtra::arrangeGrob(
-  grid::textGrob("F2: Time spent outdoors", rot = 90,
-                 x = unit(0.7, "npc"),  # push text right
-                 gp = grid::gpar(fontsize = 12, fontfamily = "Helvetica")),
-  grid::textGrob("F3: Device use in bed", rot = 90,
-                 x = unit(0.7, "npc"),  # push text right
-                 gp = grid::gpar(fontsize = 12, fontfamily = "Helvetica")),
-  ncol = 1)
-
-fig_scatter <- ggpubr::annotate_figure(fig_scatter, 
-                                       left = row_labels)
-fig_scatter
-
-ggsave("./05_output/Fig_scatter_all.png", fig_scatter, width = 12, height = 7, units = "in", dpi = 300, bg = "white")
-
-
+ggsave("./05_output/Fig_scatter_all_revisions.png", fig_scatter,
+       width = 12, height = 8, units = "in", dpi = 300, bg = "white")
 
 
 # Correlation matrix ------------------------------------------------------
