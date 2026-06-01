@@ -368,27 +368,27 @@ save(all_results, file="04_data_analysis/results.rda")
 # extract_covariates_from_existing <- function(outcome,
 #                                              predictor,      # e.g. "F2_leba"
 #                                              posterior) {    # e.g. estimatesBF_msf2
-#   
+# 
 #   summ <- summary(posterior)
 #   rows <- rownames(summ$statistics)
-#   
+# 
 #   # Keep *only* the covariate rows (age, sex, work env)
 #   cov_rows <- rows[grepl("^slypos_demographics", rows)]
-#   
+# 
 #   # Build one row per covariate
 #   cov_list <- lapply(cov_rows, function(r) {
 #     beta_mean <- summ$statistics[r, "Mean"]
 #     beta_sd   <- summ$statistics[r, "SD"]
 #     ci_lower  <- summ$quantiles[r, "2.5%"]
 #     ci_upper  <- summ$quantiles[r, "97.5%"]
-#     
+# 
 #     direction <- ifelse(beta_mean > 0, "positive",
 #                         ifelse(beta_mean < 0, "negative", "zero"))
 #     ci_includes_zero <- (ci_lower < 0 & ci_upper > 0)
-#     
+# 
 #     # nicer covariate label: everything after the last "-"
 #     cov_label <- sub(".*-", "", r)
-#     
+# 
 #     data.frame(
 #       outcome          = outcome,
 #       predictor        = predictor,
@@ -402,7 +402,7 @@ save(all_results, file="04_data_analysis/results.rda")
 #       stringsAsFactors = FALSE
 #     )
 #   })
-#   
+# 
 #   dplyr::bind_rows(cov_list)
 # }
 # 
@@ -412,25 +412,27 @@ save(all_results, file="04_data_analysis/results.rda")
 #   extract_covariates_from_existing("msf_num", "F5_leba", estimatesBF_msf5),
 #   extract_covariates_from_existing("msf_num", "F3_leba", estimatesBF_msf3),
 #   extract_covariates_from_existing("msf_num", "F4_leba", estimatesBF_msf4),
-#   
+# 
 #   # ---- MSFsc (msf_sc_num) ----
 #   extract_covariates_from_existing("msf_sc_num", "F2_leba", estimatesBF_msfsc2),
 #   extract_covariates_from_existing("msf_sc_num", "F5_leba", estimatesBF_msfsc5),
 #   extract_covariates_from_existing("msf_sc_num", "F3_leba", estimatesBF_msfsc3),
 #   extract_covariates_from_existing("msf_sc_num", "F4_leba", estimatesBF_msfsc4),
-#   
+# 
 #   # ---- Sleep Disturbances (PROMIS_sd_sum) ----
 #   extract_covariates_from_existing("Promis_sd_sum", "F2_leba", estimatesBF_SD_2),
 #   extract_covariates_from_existing("Promis_sd_sum", "F5_leba", estimatesBF_SD_5),
 #   extract_covariates_from_existing("Promis_sd_sum", "F3_leba", estimatesBF_SD_3),
 #   extract_covariates_from_existing("Promis_sd_sum", "F4_leba", estimatesBF_SD_4),
-#   
+# 
 #   # ---- Sleep-Related Impairment (PROMIS_sri_sum) ----
 #   extract_covariates_from_existing("Promis_sri_sum", "F2_leba", estimatesBF_sleepimp_f2),
 #   extract_covariates_from_existing("Promis_sri_sum", "F5_leba", estimatesBF_sleepimp_f5),
 #   extract_covariates_from_existing("Promis_sri_sum", "F3_leba", estimatesBF_sleepimp_f3),
 #   extract_covariates_from_existing("Promis_sri_sum", "F4_leba", estimatesBF_sleepimp_f4)
 # )
+
+# save(covariate_results, file="04_data_analysis/covariate_results.rda")
 
 
 # Exploratory analysis----------------------------------------------------------
