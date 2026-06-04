@@ -552,9 +552,11 @@ p <- ggcorrplot(
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.text.y = element_text(margin = margin(r = 6))) 
+    axis.text.y = element_text(margin = margin(r = 6)))
   
-p <- p + scale_y_discrete(limits = rev(rownames(R)))
+#p <- p + scale_y_discrete(limits = rev(rownames(R)))
+p <- p + scale_y_discrete(limits = rev(rownames(R)), labels = rev(rownames(R)))
+
 p <- p + scale_fill_gradient2(
       name = "Spearman \u03c1",
       low = "#C65B5B",

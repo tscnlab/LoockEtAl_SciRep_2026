@@ -1,0 +1,129 @@
+outcome,predictor,covariate,beta_mean,beta_sd,ci_lower,ci_upper,ci_includes_zero
+msf_num,F2_leba, work/schooling,-0.045569961,0.135093854,-0.308839654,0.220292123,TRUE
+msf_num,F5_leba, work/schooling,-0.145242074,0.133990081,-0.40868246,0.114559739,TRUE
+msf_num,F3_leba, work/schooling,-0.158213017,0.135072971,-0.425431225,0.099370748,TRUE
+msf_num,F4_leba, work/schooling,-0.146740118,0.135370492,-0.409069272,0.117112927,TRUE
+msf_num,F2_leba,face schooling,-0.036353045,0.142444863,-0.313979321,0.244471082,TRUE
+msf_num,F5_leba,face schooling,-0.082035866,0.14299855,-0.362029087,0.199525088,TRUE
+msf_num,F3_leba,face schooling,-0.085851177,0.144266572,-0.368660941,0.195632551,TRUE
+msf_num,F4_leba,face schooling,-0.071298976,0.144598303,-0.35503688,0.211108331,TRUE
+msf_num,F2_leba,Female,-0.149969586,0.187305411,-0.531993446,0.206184526,TRUE
+msf_num,F5_leba,Female,-0.175243546,0.193425009,-0.573732081,0.191251308,TRUE
+msf_num,F3_leba,Female,-0.196038138,0.192996331,-0.589771158,0.173039629,TRUE
+msf_num,F4_leba,Female,-0.183072333,0.192516061,-0.574208752,0.178884025,TRUE
+msf_num,F2_leba,Home office/Home schooling,-0.028418767,0.112561855,-0.246509873,0.194334617,TRUE
+msf_num,F5_leba,Home office/Home schooling,0.028177347,0.112996845,-0.1909415,0.248960254,TRUE
+msf_num,F3_leba,Home office/Home schooling,0.031002821,0.113788368,-0.189738243,0.254000601,TRUE
+msf_num,F4_leba,Home office/Home schooling,0.020740351,0.113738566,-0.20302728,0.243344938,TRUE
+msf_num,F2_leba,Male,-0.333011856,0.189098027,-0.713686964,0.026224333,TRUE
+msf_num,F5_leba,Male,-0.282526632,0.191947637,-0.67581789,0.084055878,TRUE
+msf_num,F3_leba,Male,-0.282477032,0.191798812,-0.665688552,0.076580487,TRUE
+msf_num,F4_leba,Male,-0.309072475,0.193335009,-0.700358773,0.055007817,TRUE
+msf_num,F2_leba,"Neither (no work or school, or in vacation)",0.110341773,0.144565919,-0.177900369,0.39099872,TRUE
+msf_num,F5_leba,"Neither (no work or school, or in vacation)",0.199100594,0.147725691,-0.088875085,0.495169481,TRUE
+msf_num,F3_leba,"Neither (no work or school, or in vacation)",0.213061373,0.14831671,-0.081144288,0.502434744,TRUE
+msf_num,F4_leba,"Neither (no work or school, or in vacation)",0.197298743,0.147632589,-0.091448548,0.482286391,TRUE
+msf_num,F2_leba,Other,0.482981442,0.344463183,-0.161357461,1.183179561,TRUE
+msf_num,F5_leba,Other,0.457770178,0.352260437,-0.209080908,1.194846015,TRUE
+msf_num,F3_leba,Other,0.47851517,0.351666344,-0.176732714,1.205718477,TRUE
+msf_num,F4_leba,Other,0.492144808,0.353544566,-0.170365556,1.212355823,TRUE
+msf_num,F2_leba,slypos_demographics_age,-0.023211962,0.00543133,-0.033814537,-0.012547452,FALSE
+msf_num,F5_leba,slypos_demographics_age,-0.028094215,0.005386658,-0.038776647,-0.017422036,FALSE
+msf_num,F3_leba,slypos_demographics_age,-0.027512663,0.005718681,-0.038959245,-0.016477223,FALSE
+msf_num,F4_leba,slypos_demographics_age,-0.028589522,0.005439338,-0.039257279,-0.017781032,FALSE
+msf_sc_num,F2_leba, work/schooling,-0.110153401,0.172652408,-0.450328128,0.227771754,TRUE
+msf_sc_num,F5_leba, work/schooling,-0.193847365,0.175078767,-0.537937734,0.139061308,TRUE
+msf_sc_num,F3_leba, work/schooling,-0.198506225,0.1729619,-0.542461475,0.135967509,TRUE
+msf_sc_num,F4_leba, work/schooling,-0.192370254,0.17525961,-0.53312135,0.146350835,TRUE
+msf_sc_num,F2_leba,face schooling,-0.098335609,0.182542512,-0.451507416,0.261239462,TRUE
+msf_sc_num,F5_leba,face schooling,-0.174201631,0.185766395,-0.53766865,0.188431676,TRUE
+msf_sc_num,F3_leba,face schooling,-0.167234009,0.185284291,-0.53773999,0.200323202,TRUE
+msf_sc_num,F4_leba,face schooling,-0.165543292,0.186328477,-0.533607638,0.194521504,TRUE
+msf_sc_num,F2_leba,Female,-0.516858524,0.288542343,-1.107314247,0.021879913,TRUE
+msf_sc_num,F5_leba,Female,-0.560740351,0.292602086,-1.160031194,-0.014155816,FALSE
+msf_sc_num,F3_leba,Female,-0.565960047,0.297807799,-1.165481817,-0.014560266,FALSE
+msf_sc_num,F4_leba,Female,-0.557526952,0.293389476,-1.161710725,-0.019163098,FALSE
+msf_sc_num,F2_leba,Home office/Home schooling,0.124419796,0.143698333,-0.16042627,0.403698553,TRUE
+msf_sc_num,F5_leba,Home office/Home schooling,0.176361393,0.147194214,-0.116608242,0.467549265,TRUE
+msf_sc_num,F3_leba,Home office/Home schooling,0.178126083,0.14912501,-0.115873754,0.468600863,TRUE
+msf_sc_num,F4_leba,Home office/Home schooling,0.173286352,0.146241112,-0.110386486,0.460292706,TRUE
+msf_sc_num,F2_leba,Male,-0.560815985,0.286989737,-1.148580849,-0.028985432,FALSE
+msf_sc_num,F5_leba,Male,-0.567548657,0.293753561,-1.16485967,-0.014304724,FALSE
+msf_sc_num,F3_leba,Male,-0.570134586,0.295014485,-1.162341107,-0.027978251,FALSE
+msf_sc_num,F4_leba,Male,-0.569808969,0.297686403,-1.161263038,0.00407466,TRUE
+msf_sc_num,F2_leba,"Neither (no work or school, or in vacation)",0.084069214,0.207246467,-0.314158901,0.489233223,TRUE
+msf_sc_num,F5_leba,"Neither (no work or school, or in vacation)",0.191687604,0.210072988,-0.218184518,0.606862212,TRUE
+msf_sc_num,F3_leba,"Neither (no work or school, or in vacation)",0.187614151,0.208815325,-0.217815508,0.603500842,TRUE
+msf_sc_num,F4_leba,"Neither (no work or school, or in vacation)",0.184627194,0.206602828,-0.216034106,0.589494852,TRUE
+msf_sc_num,F2_leba,Other,1.077674509,0.540609313,0.087296113,2.199797202,FALSE
+msf_sc_num,F5_leba,Other,1.128289008,0.55025963,0.099390431,2.252651524,FALSE
+msf_sc_num,F3_leba,Other,1.136094633,0.556716043,0.121895826,2.255881648,FALSE
+msf_sc_num,F4_leba,Other,1.127335921,0.555648107,0.096349232,2.264767714,FALSE
+msf_sc_num,F2_leba,slypos_demographics_age,-0.014594329,0.006795237,-0.027854427,-0.00133529,FALSE
+msf_sc_num,F5_leba,slypos_demographics_age,-0.020507716,0.006933287,-0.034034348,-0.006977178,FALSE
+msf_sc_num,F3_leba,slypos_demographics_age,-0.018737086,0.007353532,-0.033108555,-0.004147047,FALSE
+msf_sc_num,F4_leba,slypos_demographics_age,-0.019604117,0.006832527,-0.033129391,-0.006343368,FALSE
+Promis_sd_sum,F2_leba, work/schooling,-0.017017849,0.222571822,-0.450576146,0.42636899,TRUE
+Promis_sd_sum,F5_leba, work/schooling,-0.199774611,0.228036872,-0.647885391,0.243395615,TRUE
+Promis_sd_sum,F3_leba, work/schooling,-0.301202741,0.222585262,-0.74337765,0.137249712,TRUE
+Promis_sd_sum,F4_leba, work/schooling,-0.21058249,0.227942338,-0.659579299,0.239293755,TRUE
+Promis_sd_sum,F2_leba,face schooling,-0.040459663,0.232067903,-0.495358421,0.407291284,TRUE
+Promis_sd_sum,F5_leba,face schooling,-0.120884318,0.238571762,-0.588287577,0.352235178,TRUE
+Promis_sd_sum,F3_leba,face schooling,-0.120490848,0.235534117,-0.580451257,0.349640577,TRUE
+Promis_sd_sum,F4_leba,face schooling,-0.096770715,0.240395334,-0.575383213,0.37292027,TRUE
+Promis_sd_sum,F2_leba,Female,-0.178749427,0.295046547,-0.767913523,0.388188553,TRUE
+Promis_sd_sum,F5_leba,Female,-0.248180878,0.303290406,-0.846596873,0.336029718,TRUE
+Promis_sd_sum,F3_leba,Female,-0.314801401,0.296607603,-0.906851498,0.256832441,TRUE
+Promis_sd_sum,F4_leba,Female,-0.248664653,0.306368884,-0.873628683,0.336889512,TRUE
+Promis_sd_sum,F2_leba,Home office/Home schooling,-0.164431126,0.18771446,-0.534057765,0.205277592,TRUE
+Promis_sd_sum,F5_leba,Home office/Home schooling,-0.052439666,0.186561448,-0.414865635,0.313949032,TRUE
+Promis_sd_sum,F3_leba,Home office/Home schooling,-0.011010284,0.184611346,-0.371663205,0.345245379,TRUE
+Promis_sd_sum,F4_leba,Home office/Home schooling,-0.062955774,0.187771203,-0.438142873,0.301738221,TRUE
+Promis_sd_sum,F2_leba,Male,-0.448621319,0.294428485,-1.031382024,0.118965585,TRUE
+Promis_sd_sum,F5_leba,Male,-0.369162221,0.300746788,-0.970680804,0.20297999,TRUE
+Promis_sd_sum,F3_leba,Male,-0.274190757,0.296765249,-0.873275844,0.295865833,TRUE
+Promis_sd_sum,F4_leba,Male,-0.402653532,0.304352194,-1.004295882,0.183795192,TRUE
+Promis_sd_sum,F2_leba,"Neither (no work or school, or in vacation)",0.221908638,0.241960518,-0.237812476,0.692904762,TRUE
+Promis_sd_sum,F5_leba,"Neither (no work or school, or in vacation)",0.373098594,0.24845311,-0.116403478,0.867271675,TRUE
+Promis_sd_sum,F3_leba,"Neither (no work or school, or in vacation)",0.432703873,0.243441727,-0.048029447,0.9087277,TRUE
+Promis_sd_sum,F4_leba,"Neither (no work or school, or in vacation)",0.37030898,0.249182385,-0.112350443,0.859576922,TRUE
+Promis_sd_sum,F2_leba,Other,0.627370747,0.534150277,-0.406495278,1.702048556,TRUE
+Promis_sd_sum,F5_leba,Other,0.617343099,0.546897764,-0.41301277,1.709904688,TRUE
+Promis_sd_sum,F3_leba,Other,0.588992157,0.538668952,-0.436356949,1.684509695,TRUE
+Promis_sd_sum,F4_leba,Other,0.651318185,0.553016759,-0.394422198,1.768728737,TRUE
+Promis_sd_sum,F2_leba,slypos_demographics_age,0.013431445,0.008898373,-0.00420402,0.031214394,TRUE
+Promis_sd_sum,F5_leba,slypos_demographics_age,0.003571133,0.009108696,-0.014235285,0.021722413,TRUE
+Promis_sd_sum,F3_leba,slypos_demographics_age,0.017103882,0.009376966,-0.001350791,0.035516126,TRUE
+Promis_sd_sum,F4_leba,slypos_demographics_age,0.002962126,0.009080718,-0.014551901,0.020644623,TRUE
+Promis_sri_sum,F2_leba, work/schooling,0.020227995,0.259220793,-0.486352195,0.528187773,TRUE
+Promis_sri_sum,F5_leba, work/schooling,-0.170270148,0.264971124,-0.67953382,0.348675366,TRUE
+Promis_sri_sum,F3_leba, work/schooling,-0.269669973,0.261285493,-0.782709454,0.24661466,TRUE
+Promis_sri_sum,F4_leba, work/schooling,-0.155587377,0.267935083,-0.675613141,0.375141153,TRUE
+Promis_sri_sum,F2_leba,face schooling,0.230786539,0.276611327,-0.30413262,0.783763167,TRUE
+Promis_sri_sum,F5_leba,face schooling,0.147377441,0.281807036,-0.406450128,0.692224842,TRUE
+Promis_sri_sum,F3_leba,face schooling,0.162616995,0.275940486,-0.379808926,0.706974439,TRUE
+Promis_sri_sum,F4_leba,face schooling,0.206654473,0.282887338,-0.351885891,0.76270389,TRUE
+Promis_sri_sum,F2_leba,Female,-0.110710701,0.349626507,-0.825018533,0.569787766,TRUE
+Promis_sri_sum,F5_leba,Female,-0.208071585,0.363866058,-0.938063061,0.475987418,TRUE
+Promis_sri_sum,F3_leba,Female,-0.247329439,0.35309105,-0.963502493,0.422166726,TRUE
+Promis_sri_sum,F4_leba,Female,-0.154907563,0.359590758,-0.866987375,0.542619906,TRUE
+Promis_sri_sum,F2_leba,Home office/Home schooling,-0.157661697,0.221270627,-0.596607561,0.275250808,TRUE
+Promis_sri_sum,F5_leba,Home office/Home schooling,-0.057448145,0.220670127,-0.494053046,0.369442527,TRUE
+Promis_sri_sum,F3_leba,Home office/Home schooling,0.003926085,0.217950267,-0.418554366,0.428039176,TRUE
+Promis_sri_sum,F4_leba,Home office/Home schooling,-0.06930982,0.222124586,-0.508224892,0.359168969,TRUE
+Promis_sri_sum,F2_leba,Male,-0.739717045,0.353709054,-1.452326762,-0.064764795,FALSE
+Promis_sri_sum,F5_leba,Male,-0.715601431,0.360119906,-1.438509204,-0.028023201,FALSE
+Promis_sri_sum,F3_leba,Male,-0.533126525,0.353989098,-1.256784102,0.138883394,TRUE
+Promis_sri_sum,F4_leba,Male,-0.721050738,0.361069239,-1.457398521,-0.033909455,FALSE
+Promis_sri_sum,F2_leba,"Neither (no work or school, or in vacation)",-0.093352836,0.287722622,-0.651495255,0.462264529,TRUE
+Promis_sri_sum,F5_leba,"Neither (no work or school, or in vacation)",0.080340852,0.2869215,-0.483947412,0.640970679,TRUE
+Promis_sri_sum,F3_leba,"Neither (no work or school, or in vacation)",0.103126893,0.283900285,-0.464227869,0.656922339,TRUE
+Promis_sri_sum,F4_leba,"Neither (no work or school, or in vacation)",0.018242724,0.289940514,-0.54184656,0.586623305,TRUE
+Promis_sri_sum,F2_leba,Other,0.850427746,0.637084987,-0.3707132,2.132049793,TRUE
+Promis_sri_sum,F5_leba,Other,0.923673016,0.657914633,-0.308325855,2.267364736,TRUE
+Promis_sri_sum,F3_leba,Other,0.780455964,0.641971815,-0.438792781,2.093959853,TRUE
+Promis_sri_sum,F4_leba,Other,0.875958301,0.653088205,-0.34326707,2.205728409,TRUE
+Promis_sri_sum,F2_leba,slypos_demographics_age,-0.010658142,0.010595607,-0.031306852,0.009829221,TRUE
+Promis_sri_sum,F5_leba,slypos_demographics_age,-0.025050978,0.010634104,-0.045544321,-0.004135513,FALSE
+Promis_sri_sum,F3_leba,slypos_demographics_age,-0.000117172,0.01092215,-0.021945042,0.021505969,TRUE
+Promis_sri_sum,F4_leba,slypos_demographics_age,-0.018688082,0.010539102,-0.039816558,0.001328085,TRUE
