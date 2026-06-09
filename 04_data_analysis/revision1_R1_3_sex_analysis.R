@@ -20,6 +20,7 @@
 library(dplyr)
 library(tidyr)
 library(BayesFactor)
+library(effsize)
 
 
 load(file = "./04_data_analysis/analysis.data.rda")
@@ -123,6 +124,17 @@ bf_sex_leba
 # =============================================================================
 
 
+# Cohen's d for each LEBA factor, Female vs. Male
+# Input: numeric LEBA score ~ two-level sex factor
+cohens_d_results <- lapply(leba_factors, function(f) {
+  d <- cohen.d(sex_leba[[f]] ~ sex_leba$slypos_demographics_sex.factor)
+  data.frame(
+    factor      = f,
+    cohens_d    = round(d$estimate, 3),
+    ci_lower    = round(d$conf.int[1], 3),
+    ci_upper    = round(d$conf.int[2], 3))})
+cohens_d_results <- bind_rows(cohens_d_results)
+cohens_d_results
 
 
 
