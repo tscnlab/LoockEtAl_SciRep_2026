@@ -33,7 +33,7 @@ MSF <- analysis.data %>%
   drop_na(msf_num, 
           slypos_demographics_age, slypos_demographics_sex.factor, slypos_demographics_school.factor,
           F2_leba, F3_leba, F4_leba, F5_leba)
-# nrow(MSF) = 751
+# nrow(MSF) = 752
 
 # Define the common null model (without the Leba factor) for MSF as the outcome
 ## MSF
