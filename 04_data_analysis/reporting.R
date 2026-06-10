@@ -400,9 +400,8 @@ make_scatter_time <- function(df, x, y, clock_breaks = 6) {
     theme(
       text = element_text(family = "Helvetica"),
       axis.text = element_text(colour = "grey10", size = 11),
-      axis.title.y = element_text(size = 11),
-      axis.title.x = element_blank())  
-  }
+      axis.title.y = element_text(size = 13),
+      axis.title.x = element_blank())}
 
 # Function to create PROMIS sleep outcomes scatter plots
 make_scatter_promis <- function(df, x, y, y_lab) {
@@ -425,9 +424,8 @@ make_scatter_promis <- function(df, x, y, y_lab) {
     theme_classic(base_size = 14) +
     theme(text = element_text(family = "Helvetica"),
           axis.text = element_text(colour = "grey10", size = 11),
-          axis.title.y = element_text(size = 11),
-          axis.title.x = element_blank())
-  }
+          axis.title.y = element_text(size = 13),
+          axis.title.x = element_blank())}
 
 # Generate plots --- 
 # # Recreate MSF subset for scatter plots
@@ -457,28 +455,61 @@ d  <- make_scatter_time(MSF, "F3_leba", "msf_num", 6)
 e  <- make_scatter_promis(PROMIS_clean, "F3_leba", "Promis_sd_sum",  "Sleep disturbance\n[sum score]")
 f  <- make_scatter_promis(PROMIS_clean, "F3_leba", "Promis_sri_sum", "Sleep-related impairment\n[sum score]")
 
-# Column titles (outcome variable)
-col_titles <- plot_grid(
-  ggdraw() + draw_label("Sleep timing",             fontface = "bold", size = 14, fontfamily = "Helvetica"),
-  ggdraw() + draw_label("Sleep disturbance",        fontface = "bold", size = 14, fontfamily = "Helvetica"),
-  ggdraw() + draw_label("Sleep-related impairment", fontface = "bold", size = 14, fontfamily = "Helvetica"),
-  ncol = 3)
+# Add column titles directly to the top-row plots
+a  <- a  + ggtitle("Sleep timing")
+b  <- b  + ggtitle("Sleep disturbance")
+cc <- cc + ggtitle("Sleep-related impairment")
 
-# Row panels with tags
-row1_panels <- plot_grid(a, b, cc, ncol = 3, labels = c("A","B","C"), label_fontfamily = "Helvetica")
-row2_panels <- plot_grid(d, e, f, ncol = 3, labels = c("D","E","F"), label_fontfamily = "Helvetica")
+# Make title styling consistent
+title_theme <- theme(plot.title = element_text(family = "Helvetica", face = "bold", size = 15, hjust = 0.5, margin = margin(b = 6)))
 
-# Per-row x-axis labels (predictor variable)
-row1_xlab <- ggdraw() + draw_label("Time spent outdoors [sum score]", size = 11, fontfamily = "Helvetica")
-row2_xlab <- ggdraw() + draw_label("Device use in bed [sum score]",   size = 11, fontfamily = "Helvetica")
+a  <- a  + title_theme
+b  <- b  + title_theme
+cc <- cc + title_theme
+
+# Optional: add top margin to the second row
+d <- d + theme(plot.margin = margin(t = 8, r = 5.5, b = 5.5, l = 5.5))
+e <- e + theme(plot.margin = margin(t = 8, r = 5.5, b = 5.5, l = 5.5))
+f <- f + theme(plot.margin = margin(t = 8, r = 5.5, b = 5.5, l = 5.5))
+
+# Panel rows
+row1_panels <- plot_grid(
+  a, b, cc,
+  ncol = 3,
+  labels = c("A", "B", "C"),
+  label_fontfamily = "Helvetica", label_fontface = "bold", align = "hv", axis = "tblr")
+
+row2_panels <- plot_grid(
+  d, e, f,
+  ncol = 3,
+  labels = c("D", "E", "F"),
+  label_fontfamily = "Helvetica", label_fontface = "bold", align = "hv", axis = "tblr")
+
+# Shared x-axis labels
+row1_xlab <- ggdraw() +
+  draw_label(
+    "Time spent outdoors [sum score]",
+    size = 13, fontfamily = "Helvetica",
+    y = 1, # move close to row above
+    vjust = 1)
+
+row2_xlab <- ggdraw() +
+  draw_label(
+    "Device use in bed [sum score]",
+    size = 13, fontfamily = "Helvetica", y = 1, vjust = 1)
+
+# Blank spacer between row 1 label and row 2 panels
+row_spacer <- ggdraw()
 
 # Assemble
 fig_scatter <- plot_grid(
-  col_titles,
-  row1_panels, row1_xlab,
-  row2_panels, row2_xlab,
+  row1_panels,
+  row1_xlab,
+  row_spacer,
+  row2_panels,
+  row2_xlab,
   ncol = 1,
-  rel_heights = c(0.07, 1, 0.07, 1, 0.07))
+  rel_heights = c(1, 0.055, 0.08, 1, 0.055))
 
 ggsave("./05_output/Fig_scatter_all_revisions.png", fig_scatter,
        width = 12, height = 8, units = "in", dpi = 300, bg = "white")
