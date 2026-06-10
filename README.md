@@ -111,6 +111,9 @@ If scripts within a folder have a numeric prefix, execute them in that order.
     - Spearman correlation matrix figure with FDR-adjusted p-values and custom labels, saved as `cor_matrix.png`
     - Descriptive statistics table formatted for manuscript use and saved as `Table_descriptives.docx`
 
+- `04_data_analysis/revision1_R1_3_sex_analysis.R`  
+  **What it does:**
+  - Added in response to a reviewer's comment during the manuscript revision process
 ---
 
 ## 05_output
